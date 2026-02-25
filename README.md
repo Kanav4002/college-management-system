@@ -20,3 +20,9 @@
 - Notices
 - Resources
 - Timetable
+
+## Members
+- Isha (2310992099)
+- Kanav Kumar (2310992111)
+- Muskan (2310992154)
+- Mitul Goyal (2310992158)
