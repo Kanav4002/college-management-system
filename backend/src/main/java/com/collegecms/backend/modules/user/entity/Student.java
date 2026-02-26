@@ -18,11 +18,13 @@ public class Student {
     @JoinColumn(name = "id", nullable = false)
     private User user;
 
+    @Column(nullable = false)
+    private String name;   // duplicated
+
     @Column(unique = true, nullable = false)
     private String rollNo;
 
     @Column(nullable = false)
-    private String branch;   // CSE, BBA, etc.
-
-    
+    private String branch;
 }
+    
