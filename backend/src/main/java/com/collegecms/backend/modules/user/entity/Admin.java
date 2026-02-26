@@ -18,6 +18,9 @@ public class Admin {
     @JoinColumn(name = "id", nullable = false)
     private User user;
 
+    @Column(nullable = false)
+    private String name;   // duplicated
+
     @Column(unique = true, nullable = false)
     private String adminId;
 }
