@@ -1,6 +1,8 @@
 package com.collegecms.backend.modules.auth.service;
 
+import com.collegecms.backend.common.security.JwtService;
 import com.collegecms.backend.modules.auth.dto.LoginRequest;
+import com.collegecms.backend.modules.auth.dto.LoginResponse;
 import com.collegecms.backend.modules.auth.dto.RegisterRequest;
 import com.collegecms.backend.modules.user.entity.*;
 import com.collegecms.backend.modules.user.repository.*;
@@ -18,7 +20,7 @@ public class AuthService {
     private final MentorRepository mentorRepository;
     private final AdminRepository adminRepository;
     private final PasswordEncoder passwordEncoder;
-    
+    private final JwtService jwtService;
 
     @Transactional
     public String register(RegisterRequest request) {
@@ -27,7 +29,6 @@ public class AuthService {
             throw new RuntimeException("Email already exists");
         }
 
-        // Create base user
         User user = new User();
         user.setName(request.getName());
         user.setEmail(request.getEmail());
@@ -36,13 +37,12 @@ public class AuthService {
 
         User savedUser = userRepository.save(user);
 
-        // Role-specific logic
         switch (request.getRole()) {
 
             case STUDENT -> {
                 Student student = new Student();
                 student.setUser(savedUser);
-                student.setName(request.getName());   // ADD THIS
+                student.setName(request.getName());
                 student.setRollNo(request.getRollNo());
                 student.setBranch(request.getBranch());
                 studentRepository.save(student);
@@ -51,24 +51,24 @@ public class AuthService {
             case MENTOR -> {
                 Mentor mentor = new Mentor();
                 mentor.setUser(savedUser);
-                mentor.setName(request.getName());   // ADD THIS
+                mentor.setName(request.getName());
                 mentor.setFacultyId(request.getFacultyId());
                 mentorRepository.save(mentor);
             }
 
             case ADMIN -> {
-            Admin admin = new Admin();
-            admin.setUser(savedUser);
-            admin.setName(request.getName());   // ADD THIS
-            admin.setAdminId(request.getAdminId());
-            adminRepository.save(admin);
+                Admin admin = new Admin();
+                admin.setUser(savedUser);
+                admin.setName(request.getName());
+                admin.setAdminId(request.getAdminId());
+                adminRepository.save(admin);
             }
         }
 
         return "User registered successfully";
     }
 
-    public String login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request) {
 
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -77,6 +77,12 @@ public class AuthService {
             throw new RuntimeException("Invalid password");
         }
 
-        return "Login successful (JWT will be added next)";
+        String token = jwtService.generateToken(user.getEmail());
+
+        return new LoginResponse(
+                token,
+                user.getEmail(),
+                user.getRole().name()
+        );
     }
 }
