@@ -1,8 +1,6 @@
 package com.collegecms.backend.modules.auth.controller;
 
-import com.collegecms.backend.modules.auth.dto.LoginRequest;
-import com.collegecms.backend.modules.auth.dto.LoginResponse;
-import com.collegecms.backend.modules.auth.dto.RegisterRequest;
+import com.collegecms.backend.modules.auth.dto.*;
 import com.collegecms.backend.modules.auth.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -22,5 +20,20 @@ public class AuthController {
     @PostMapping("/login")
     public LoginResponse login(@RequestBody LoginRequest request) {
         return authService.login(request);
+    }
+
+    @PostMapping("/oauth/google")
+    public LoginResponse loginWithGoogle(@RequestBody GoogleOAuthRequest request) {
+        return authService.loginWithGoogle(request);
+    }
+
+    @PostMapping("/forgot-password")
+    public String forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        return authService.forgotPassword(request);
+    }
+
+    @PostMapping("/reset-password")
+    public String resetPassword(@RequestBody ResetPasswordRequest request) {
+        return authService.resetPassword(request);
     }
 }
