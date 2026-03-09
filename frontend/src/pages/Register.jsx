@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
+import GoogleSignInButton from "../components/GoogleSignInButton";
 
 function Register() {
   const navigate = useNavigate();
@@ -43,166 +44,263 @@ function Register() {
     }
   };
 
+  const isStudent = formData.role === "STUDENT";
+  const isMentor = formData.role === "MENTOR";
+  const isAdmin = formData.role === "ADMIN";
+  const hasGoogleOAuth = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
+
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg p-8">
-        <h2 className="text-3xl font-bold text-center text-blue-600 mb-6">
-          Register
-        </h2>
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden auth-cloud-bg px-4">
+      {/* Soft background circles */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-40 top-10 h-72 w-72 rounded-full bg-white/40 blur-3xl" />
+        <div className="absolute -right-32 bottom-0 h-80 w-80 rounded-full bg-sky-200/60 blur-3xl" />
+      </div>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Full Name
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              placeholder="John Doe"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+      <div className="relative w-full max-w-lg">
+        <div className="mx-auto rounded-3xl border border-white/60 bg-white/70 p-8 shadow-[0_18px_45px_rgba(15,23,42,0.25)] backdrop-blur-2xl">
+          {/* Icon */}
+          <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-2xl border border-white bg-white/70 shadow-sm">
+            <span className="text-lg">✚</span>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              placeholder="you@example.com"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+          <h2 className="mb-2 text-center text-2xl font-semibold text-slate-900">
+            Create your account
+          </h2>
+          <p className="mb-6 text-center text-sm text-slate-500">
+            Sign up with your college email and choose your role to get started.
+          </p>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              placeholder="••••••••"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+          {error && (
+            <div className="mb-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+              {error}
+            </div>
+          )}
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Role
-            </label>
-            <select
-              name="role"
-              value={formData.role}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            >
-              <option value="STUDENT">Student</option>
-              <option value="MENTOR">Mentor</option>
-              <option value="ADMIN">Admin</option>
-            </select>
-          </div>
-
-          {/* Student-specific fields */}
-          {formData.role === "STUDENT" && (
+          {hasGoogleOAuth && (
             <>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Roll No
-                </label>
-                <input
-                  type="text"
-                  name="rollNo"
-                  value={formData.rollNo}
-                  onChange={handleChange}
-                  required
-                  placeholder="e.g. 2024CS001"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+              <div className="mb-4 flex items-center gap-3 text-xs text-slate-400">
+                <div className="h-px flex-1 bg-slate-200" />
+                <span>Or sign up with</span>
+                <div className="h-px flex-1 bg-slate-200" />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Branch
-                </label>
-                <input
-                  type="text"
-                  name="branch"
-                  value={formData.branch}
-                  onChange={handleChange}
-                  required
-                  placeholder="e.g. Computer Science"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              <div className="mb-6 flex justify-center">
+                <GoogleSignInButton
+                  onLoginSuccess={async (tokenResponse) => {
+                    try {
+                      setError("");
+                      const profileRes = await axios.get(
+                        "https://www.googleapis.com/oauth2/v3/userinfo",
+                        {
+                          headers: {
+                            Authorization: `Bearer ${tokenResponse.access_token}`,
+                          },
+                        }
+                      );
+
+                      const { email, name } = profileRes.data || {};
+
+                      setFormData((prev) => ({
+                        ...prev,
+                        email: email || prev.email,
+                        name: name || prev.name,
+                      }));
+                    } catch (err) {
+                      setError(
+                        "Could not fetch Google profile. Please fill your details manually."
+                      );
+                    }
+                  }}
+                  onLoginError={() =>
+                    setError("Google sign-up failed. Please try again.")
+                  }
                 />
               </div>
             </>
           )}
 
-          {/* Mentor-specific field */}
-          {formData.role === "MENTOR" && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Faculty ID
+          <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
+            {/* Full name */}
+            <div className="space-y-1.5 md:col-span-2">
+              <label className="text-xs font-medium text-slate-600">
+                Full Name
               </label>
-              <input
-                type="text"
-                name="facultyId"
-                value={formData.facultyId}
-                onChange={handleChange}
-                required
-                placeholder="e.g. FAC001"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5 shadow-sm focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-300">
+                <span className="text-slate-400">👤</span>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  required
+                  placeholder="John Doe"
+                  className="flex-1 border-none bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                />
+              </div>
             </div>
-          )}
 
-          {/* Admin-specific field */}
-          {formData.role === "ADMIN" && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Admin ID
+            {/* Email */}
+            <div className="space-y-1.5 md:col-span-2">
+              <label className="text-xs font-medium text-slate-600">
+                Email
               </label>
-              <input
-                type="text"
-                name="adminId"
-                value={formData.adminId}
-                onChange={handleChange}
-                required
-                placeholder="e.g. ADM001"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5 shadow-sm focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-300">
+                <span className="text-slate-400">✉️</span>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
+                  placeholder="you@example.com"
+                  className="flex-1 border-none bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                />
+              </div>
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? "Creating account..." : "Create Account"}
-          </button>
-        </form>
+            {/* Password */}
+            <div className="space-y-1.5 md:col-span-2">
+              <label className="text-xs font-medium text-slate-600">
+                Password
+              </label>
+              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5 shadow-sm focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-300">
+                <span className="text-slate-400">🔒</span>
+                <input
+                  type="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  placeholder="••••••••"
+                  className="flex-1 border-none bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                />
+              </div>
+            </div>
 
-        <p className="text-center text-sm text-gray-500 mt-6">
-          Already have an account?{" "}
-          <Link to="/login" className="text-blue-600 hover:underline">
-            Login
-          </Link>
-        </p>
+            {/* Role */}
+            <div className="space-y-1.5 md:col-span-2">
+              <label className="text-xs font-medium text-slate-600">
+                Role
+              </label>
+              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5 shadow-sm focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-300">
+                <span className="text-slate-400">🎓</span>
+                <select
+                  name="role"
+                  value={formData.role}
+                  onChange={handleChange}
+                  className="flex-1 border-none bg-transparent text-sm text-slate-900 outline-none"
+                >
+                  <option value="STUDENT">Student</option>
+                  <option value="MENTOR">Mentor</option>
+                  <option value="ADMIN">Admin</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Student-specific fields */}
+            {isStudent && (
+              <>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-600">
+                    Roll No
+                  </label>
+                  <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5 shadow-sm focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-300">
+                    <span className="text-slate-400">#</span>
+                    <input
+                      type="text"
+                      name="rollNo"
+                      value={formData.rollNo}
+                      onChange={handleChange}
+                      required={isStudent}
+                      placeholder="e.g. 2024CS001"
+                      className="flex-1 border-none bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-slate-600">
+                    Branch
+                  </label>
+                  <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5 shadow-sm focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-300">
+                    <span className="text-slate-400">🏫</span>
+                    <input
+                      type="text"
+                      name="branch"
+                      value={formData.branch}
+                      onChange={handleChange}
+                      required={isStudent}
+                      placeholder="e.g. Computer Science"
+                      className="flex-1 border-none bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Mentor-specific field */}
+            {isMentor && (
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-xs font-medium text-slate-600">
+                  Faculty ID
+                </label>
+                <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5 shadow-sm focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-300">
+                  <span className="text-slate-400">🧑‍🏫</span>
+                  <input
+                    type="text"
+                    name="facultyId"
+                    value={formData.facultyId}
+                    onChange={handleChange}
+                    required={isMentor}
+                    placeholder="e.g. FAC001"
+                    className="flex-1 border-none bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Admin-specific field */}
+            {isAdmin && (
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-xs font-medium text-slate-600">
+                  Admin ID
+                </label>
+                <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5 shadow-sm focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-300">
+                  <span className="text-slate-400">⭐</span>
+                  <input
+                    type="text"
+                    name="adminId"
+                    value={formData.adminId}
+                    onChange={handleChange}
+                    required={isAdmin}
+                    placeholder="e.g. ADM001"
+                    className="flex-1 border-none bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Primary button */}
+            <div className="md:col-span-2">
+              <button
+                type="submit"
+                disabled={loading}
+                className="mt-2 w-full rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading ? "Creating account..." : "Create Account"}
+              </button>
+            </div>
+          </form>
+
+          <p className="mt-6 text-center text-xs text-slate-500">
+            Already have an account?{" "}
+            <Link
+              to="/login"
+              className="font-medium text-slate-800 hover:underline"
+            >
+              Login
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
