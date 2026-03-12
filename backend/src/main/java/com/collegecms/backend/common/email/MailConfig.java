@@ -38,8 +38,13 @@ public class MailConfig {
         mailSender.setPassword(password);
 
         Properties props = mailSender.getJavaMailProperties();
+        props.put("mail.transport.protocol", "smtp");
         props.put("mail.smtp.auth", String.valueOf(auth));
         props.put("mail.smtp.starttls.enable", String.valueOf(startTls));
+        props.put("mail.smtp.ssl.trust", "smtp.gmail.com");
+        props.put("mail.smtp.connectiontimeout", "5000");
+        props.put("mail.smtp.timeout", "5000");
+        props.put("mail.smtp.writetimeout", "5000");
 
         return mailSender;
     }
