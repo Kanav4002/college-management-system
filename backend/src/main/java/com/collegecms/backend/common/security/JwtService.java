@@ -4,18 +4,31 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
+import java.util.Base64;
 import java.util.Date;
 import java.util.function.Function;
 
 @Service
 public class JwtService {
 
-    private final Key SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+    private final Key SECRET_KEY;
 
     private final long EXPIRATION_TIME = 1000 * 60 * 60 * 24; // 1 day
+
+    public JwtService(@Value("${jwt.secret:}") String secret) {
+        if (secret != null && !secret.isBlank()) {
+            this.SECRET_KEY = Keys.hmacShaKeyFor(Base64.getDecoder().decode(secret));
+        } else {
+            // Fallback: generate a stable key and log a warning
+            this.SECRET_KEY = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+            String encoded = Base64.getEncoder().encodeToString(this.SECRET_KEY.getEncoded());
+            System.out.println("⚠️  No jwt.secret configured. Generated key (add to application.properties): jwt.secret=" + encoded);
+        }
+    }
 
     public String generateToken(String email) {
         return Jwts.builder()

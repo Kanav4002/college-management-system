@@ -1,10 +1,47 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, Fragment } from "react";
 import { Link } from "react-router-dom";
 import api from "../api/api";
 
-const CATEGORIES = ["Academic", "Infrastructure", "Hostel", "Library", "Other"];
+/* ── Dropdown options ──────────────────────────────────────────── */
+const ISSUE_TYPES = [
+  "Electrical",
+  "Plumbing",
+  "Cleaning",
+  "IT / Network",
+  "Furniture",
+  "Civil / Structural",
+  "Pest Control",
+  "Other",
+];
+
+const CATEGORIES = [
+  "Academic",
+  "Infrastructure",
+  "Hostel",
+  "Library",
+  "Canteen",
+  "Sports",
+  "Other",
+];
+
+const BUILDINGS = [
+  "Main Building",
+  "Science Block",
+  "Engineering Block",
+  "Library Building",
+  "Hostel A",
+  "Hostel B",
+  "Hostel C",
+  "Admin Block",
+  "Canteen Building",
+  "Sports Complex",
+];
+
+const FLOORS = ["Ground", "1st", "2nd", "3rd", "4th", "5th"];
+
 const PRIORITIES = ["LOW", "MEDIUM", "HIGH"];
 
+/* ── Style maps ───────────────────────────────────────────────── */
 const statusStyles = {
   PENDING:  "bg-yellow-100 text-yellow-700",
   APPROVED: "bg-blue-100 text-blue-700",
@@ -18,7 +55,7 @@ const priorityStyles = {
   HIGH:   "bg-red-100 text-red-600",
 };
 
-/* ── tiny bar chart component ─────────────────────────────────── */
+/* ── Mini bar chart ───────────────────────────────────────────── */
 function MiniBarChart({ data }) {
   if (!data || Object.keys(data).length === 0) {
     return <p className="text-xs text-gray-400 italic">No data yet</p>;
@@ -46,6 +83,22 @@ function MiniBarChart({ data }) {
   );
 }
 
+/* ── Reusable form-field wrapper ──────────────────────────────── */
+function Field({ label, required, children }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">
+        {label} {required && <span className="text-red-400">*</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+const inputCls =
+  "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500";
+
+/* ═══════════════════════════════════════════════════════════════ */
 function StudentPanel() {
   const [complaints, setComplaints] = useState([]);
   const [stats, setStats] = useState(null);
@@ -55,13 +108,21 @@ function StudentPanel() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const [form, setForm] = useState({
+  const emptyForm = {
     title: "",
     description: "",
     category: CATEGORIES[0],
+    issueType: ISSUE_TYPES[0],
+    building: BUILDINGS[0],
+    floorNumber: FLOORS[0],
+    roomNumber: "",
+    problemStartedAt: "",
     priority: "MEDIUM",
-  });
+  };
 
+  const [form, setForm] = useState(emptyForm);
+
+  /* ── Fetch ─────────────────────────────────────────────────── */
   const fetchData = useCallback(async () => {
     try {
       const [complaintsRes, statsRes] = await Promise.all([
@@ -84,22 +145,38 @@ function StudentPanel() {
   const handleChange = (e) =>
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
 
+  /* ── Validation & Submit ───────────────────────────────────── */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setSuccess("");
-    if (!form.title.trim() || !form.description.trim()) {
-      setError("Title and description are required.");
-      return;
+
+    // Client-side validation
+    const required = ["title", "description", "issueType", "building", "floorNumber", "roomNumber"];
+    for (const key of required) {
+      if (!form[key]?.trim()) {
+        setError(`Please fill in the "${key.replace(/([A-Z])/g, " $1").trim()}" field.`);
+        return;
+      }
     }
+
     setSubmitting(true);
     try {
-      const { data } = await api.post("/complaints", form);
+      // Build payload — convert datetime-local string → ISO
+      const payload = {
+        ...form,
+        problemStartedAt: form.problemStartedAt
+          ? new Date(form.problemStartedAt).toISOString()
+          : null,
+      };
+
+      const { data } = await api.post("/complaints", payload);
       setComplaints((prev) => [data, ...prev]);
-      setForm({ title: "", description: "", category: CATEGORIES[0], priority: "MEDIUM" });
+      setForm(emptyForm);
       setShowForm(false);
       setSuccess("Complaint submitted successfully!");
       setTimeout(() => setSuccess(""), 4000);
+
       // Refresh stats
       const { data: newStats } = await api.get("/complaints/stats/student");
       setStats(newStats);
@@ -110,6 +187,10 @@ function StudentPanel() {
     }
   };
 
+  /* ── Expanded-row state for mobile-friendly detail view ───── */
+  const [expandedId, setExpandedId] = useState(null);
+
+  /* ═══════════════════════════════════════════════════════════ */
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -123,7 +204,7 @@ function StudentPanel() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-        {/* ── Stats Cards ─────────────────────────────────────── */}
+        {/* ── Stats Cards ──────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
           {[
             { label: "Total",    value: stats?.total    ?? "–", icon: "📋", color: "text-gray-700",   bg: "bg-gray-50"   },
@@ -142,7 +223,7 @@ function StudentPanel() {
           ))}
         </div>
 
-        {/* ── Category Breakdown ─────────────────────────────── */}
+        {/* ── Category Breakdown ────────────────────────────────── */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-base font-semibold text-gray-800 mb-4">Complaints by Category</h2>
           <MiniBarChart data={stats?.byCategory} />
@@ -160,7 +241,7 @@ function StudentPanel() {
           </div>
         )}
 
-        {/* ── Create Complaint ───────────────────────────────── */}
+        {/* ── Create Complaint ──────────────────────────────────── */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-gray-800">Raise a Complaint</h2>
@@ -174,59 +255,135 @@ function StudentPanel() {
 
           {showForm && (
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
+              {/* Row 1 — Title */}
+              <Field label="Title" required>
                 <input
                   name="title"
                   value={form.title}
                   onChange={handleChange}
                   required
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={inputCls}
                 />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea
-                  name="description"
-                  value={form.description}
-                  onChange={handleChange}
-                  rows={3}
-                  required
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                />
-              </div>
+              </Field>
+
+              {/* Row 2 — Issue Type & Category */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <Field label="Issue Type" required>
+                  <select
+                    name="issueType"
+                    value={form.issueType}
+                    onChange={handleChange}
+                    required
+                    className={inputCls}
+                  >
+                    {ISSUE_TYPES.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </Field>
+
+                <Field label="Category" required>
                   <select
                     name="category"
                     value={form.category}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                    className={inputCls}
                   >
                     {CATEGORIES.map((c) => (
-                      <option key={c}>{c}</option>
+                      <option key={c} value={c}>{c}</option>
                     ))}
                   </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+                </Field>
+              </div>
+
+              {/* Row 3 — Date/time problem started & Priority */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="When did the problem start?">
+                  <input
+                    type="datetime-local"
+                    name="problemStartedAt"
+                    value={form.problemStartedAt}
+                    onChange={handleChange}
+                    className={inputCls}
+                  />
+                </Field>
+
+                <Field label="Priority" required>
                   <select
                     name="priority"
                     value={form.priority}
                     onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                    className={inputCls}
                   >
                     {PRIORITIES.map((p) => (
-                      <option key={p}>{p}</option>
+                      <option key={p} value={p}>{p}</option>
                     ))}
                   </select>
-                </div>
+                </Field>
               </div>
+
+              {/* Row 4 — Building & Floor */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Field label="Building" required>
+                  <select
+                    name="building"
+                    value={form.building}
+                    onChange={handleChange}
+                    required
+                    className={inputCls}
+                  >
+                    {BUILDINGS.map((b) => (
+                      <option key={b} value={b}>{b}</option>
+                    ))}
+                  </select>
+                </Field>
+
+                <Field label="Floor" required>
+                  <select
+                    name="floorNumber"
+                    value={form.floorNumber}
+                    onChange={handleChange}
+                    required
+                    className={inputCls}
+                  >
+                    {FLOORS.map((f) => (
+                      <option key={f} value={f}>{f}</option>
+                    ))}
+                  </select>
+                </Field>
+
+                <Field label="Room Number" required>
+                  <input
+                    name="roomNumber"
+                    value={form.roomNumber}
+                    onChange={handleChange}
+                    required
+                    placeholder="e.g. 204"
+                    className={inputCls}
+                  />
+                </Field>
+              </div>
+
+              {/* Row 5 — Description */}
+              <Field label="Complaint Description" required>
+                <textarea
+                  name="description"
+                  value={form.description}
+                  onChange={handleChange}
+                  rows={4}
+                  required
+                  placeholder="Describe the issue in detail…"
+                  className={`${inputCls} resize-none`}
+                />
+              </Field>
+
+              {/* Submit */}
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50 cursor-pointer"
+                className="w-full py-2.5 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition disabled:opacity-50 cursor-pointer"
               >
                 {submitting ? "Submitting…" : "Submit Complaint"}
               </button>
@@ -234,7 +391,7 @@ function StudentPanel() {
           )}
         </div>
 
-        {/* ── My Complaints Table ────────────────────────────── */}
+        {/* ── My Complaints Table ─────────────────────────────── */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-lg font-bold text-gray-800 mb-4">My Complaints</h2>
 
@@ -248,7 +405,8 @@ function StudentPanel() {
                 <thead>
                   <tr className="border-b text-gray-500 text-xs uppercase tracking-wide">
                     <th className="pb-3 pr-4">Title</th>
-                    <th className="pb-3 pr-4">Category</th>
+                    <th className="pb-3 pr-4">Issue Type</th>
+                    <th className="pb-3 pr-4">Location</th>
                     <th className="pb-3 pr-4">Priority</th>
                     <th className="pb-3 pr-4">Status</th>
                     <th className="pb-3 pr-4">Mentor</th>
@@ -257,24 +415,55 @@ function StudentPanel() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {complaints.map((c) => (
-                    <tr key={c.id} className="hover:bg-gray-50">
-                      <td className="py-3 pr-4 font-medium text-gray-800">{c.title}</td>
-                      <td className="py-3 pr-4 text-gray-600">{c.category}</td>
-                      <td className="py-3 pr-4">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${priorityStyles[c.priority]}`}>
-                          {c.priority}
-                        </span>
-                      </td>
-                      <td className="py-3 pr-4">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusStyles[c.status]}`}>
-                          {c.status}
-                        </span>
-                      </td>
-                      <td className="py-3 pr-4 text-gray-500">{c.mentorName || "—"}</td>
-                      <td className="py-3 text-gray-500">
-                        {new Date(c.createdAt).toLocaleDateString()}
-                      </td>
-                    </tr>
+                    <Fragment key={c.id}>
+                      <tr
+                        className="hover:bg-gray-50 cursor-pointer"
+                        onClick={() => setExpandedId(expandedId === c.id ? null : c.id)}
+                      >
+                        <td className="py-3 pr-4 font-medium text-gray-800">
+                          {c.title}
+                          <p className="text-xs text-gray-400 mt-0.5 truncate max-w-xs">{c.description}</p>
+                        </td>
+                        <td className="py-3 pr-4 text-gray-600">{c.issueType || c.category}</td>
+                        <td className="py-3 pr-4 text-gray-600 whitespace-nowrap">
+                          {c.building ? `${c.building}, ${c.floorNumber} Floor, Rm ${c.roomNumber}` : "—"}
+                        </td>
+                        <td className="py-3 pr-4">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${priorityStyles[c.priority]}`}>
+                            {c.priority}
+                          </span>
+                        </td>
+                        <td className="py-3 pr-4">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${statusStyles[c.status]}`}>
+                            {c.status}
+                          </span>
+                        </td>
+                        <td className="py-3 pr-4 text-gray-500">{c.mentorName || "—"}</td>
+                        <td className="py-3 text-gray-500 whitespace-nowrap">
+                          {new Date(c.createdAt).toLocaleDateString()}
+                        </td>
+                      </tr>
+                      {expandedId === c.id && (
+                        <tr className="bg-gray-50">
+                          <td colSpan={7} className="px-4 py-3">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-gray-600">
+                              <div><span className="font-semibold text-gray-500">Category:</span> {c.category}</div>
+                              <div><span className="font-semibold text-gray-500">Issue Type:</span> {c.issueType || "—"}</div>
+                              <div><span className="font-semibold text-gray-500">Building:</span> {c.building || "—"}</div>
+                              <div><span className="font-semibold text-gray-500">Floor:</span> {c.floorNumber || "—"}</div>
+                              <div><span className="font-semibold text-gray-500">Room:</span> {c.roomNumber || "—"}</div>
+                              <div>
+                                <span className="font-semibold text-gray-500">Problem Since:</span>{" "}
+                                {c.problemStartedAt ? new Date(c.problemStartedAt).toLocaleString() : "—"}
+                              </div>
+                              <div className="sm:col-span-2">
+                                <span className="font-semibold text-gray-500">Description:</span> {c.description}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>

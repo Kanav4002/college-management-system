@@ -49,6 +49,11 @@ public class ComplaintService {
         c.setTitle(req.getTitle());
         c.setDescription(req.getDescription());
         c.setCategory(req.getCategory());
+        c.setIssueType(req.getIssueType());
+        c.setBuilding(req.getBuilding());
+        c.setFloorNumber(req.getFloorNumber());
+        c.setRoomNumber(req.getRoomNumber());
+        c.setProblemStartedAt(req.getProblemStartedAt());
         c.setPriority(req.getPriority());
         c.setStatus(ComplaintStatus.PENDING);
         c.setStudent(student);

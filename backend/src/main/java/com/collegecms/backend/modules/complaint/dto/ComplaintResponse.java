@@ -12,6 +12,11 @@ public class ComplaintResponse {
     private String title;
     private String description;
     private String category;
+    private String issueType;
+    private String building;
+    private String floorNumber;
+    private String roomNumber;
+    private LocalDateTime problemStartedAt;
     private String priority;
     private String status;
     private String studentName;
@@ -26,6 +31,11 @@ public class ComplaintResponse {
         r.setTitle(c.getTitle());
         r.setDescription(c.getDescription());
         r.setCategory(c.getCategory());
+        r.setIssueType(c.getIssueType());
+        r.setBuilding(c.getBuilding());
+        r.setFloorNumber(c.getFloorNumber());
+        r.setRoomNumber(c.getRoomNumber());
+        r.setProblemStartedAt(c.getProblemStartedAt());
         r.setPriority(c.getPriority().name());
         r.setStatus(c.getStatus().name());
         r.setStudentName(c.getStudent().getName());

@@ -154,7 +154,8 @@ function MentorPanel() {
                     <th className="pb-3 pr-4">#</th>
                     <th className="pb-3 pr-4">Title</th>
                     <th className="pb-3 pr-4">Student</th>
-                    <th className="pb-3 pr-4">Category</th>
+                    <th className="pb-3 pr-4">Issue Type</th>
+                    <th className="pb-3 pr-4">Location</th>
                     <th className="pb-3 pr-4">Priority</th>
                     <th className="pb-3 pr-4">Status</th>
                     <th className="pb-3 pr-4">Date</th>
@@ -170,7 +171,12 @@ function MentorPanel() {
                         <p className="text-xs text-gray-400 mt-0.5 max-w-xs truncate">{c.description}</p>
                       </td>
                       <td className="py-3 pr-4 text-gray-600">{c.studentName}</td>
-                      <td className="py-3 pr-4 text-gray-600">{c.category}</td>
+                      <td className="py-3 pr-4 text-gray-600">{c.issueType || c.category}</td>
+                      <td className="py-3 pr-4 text-gray-600 whitespace-nowrap text-xs">
+                        {c.building ? (
+                          <span>{c.building}, {c.floorNumber} Floor, Rm {c.roomNumber}</span>
+                        ) : "—"}
+                      </td>
                       <td className="py-3 pr-4">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${priorityStyles[c.priority]}`}>
                           {c.priority}
