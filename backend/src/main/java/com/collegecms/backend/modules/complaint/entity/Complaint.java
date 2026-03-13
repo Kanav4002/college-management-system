@@ -26,6 +26,25 @@ public class Complaint {
     @Column(nullable = false)
     private String category;
 
+    /** Structured issue type (e.g. Electrical, Plumbing, IT, Cleaning …) */
+    @Column(nullable = false)
+    private String issueType;
+
+    /** Campus building where the problem exists */
+    @Column(nullable = false)
+    private String building;
+
+    /** Floor number inside the building */
+    @Column(nullable = false)
+    private String floorNumber;
+
+    /** Room number / identifier */
+    @Column(nullable = false)
+    private String roomNumber;
+
+    /** When the problem started (reported by the student) */
+    private LocalDateTime problemStartedAt;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Priority priority;
