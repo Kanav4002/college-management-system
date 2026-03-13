@@ -10,6 +10,7 @@ function Login() {
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const hasGoogleOAuth = Boolean(import.meta.env.VITE_GOOGLE_CLIENT_ID);
 
   const handleChange = (e) => {
@@ -23,7 +24,6 @@ function Login() {
 
     try {
       const res = await axios.post("/api/auth/login", formData);
-      // res.data = { token, email, role }
       login(res.data);
       navigate("/dashboard");
     } catch (err) {
@@ -99,7 +99,7 @@ function Login() {
               <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5 shadow-sm focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-300">
                 <span className="text-slate-400">🔒</span>
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
@@ -107,6 +107,25 @@ function Login() {
                   placeholder="••••••••"
                   className="flex-1 border-none bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="text-slate-400 hover:text-slate-600 transition focus:outline-none"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    /* Eye-off icon */
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-5 0-9.27-3.11-11-7.5a11.72 11.72 0 013.168-4.477M6.343 6.343A9.97 9.97 0 0112 5c5 0 9.27 3.11 11 7.5a11.72 11.72 0 01-4.168 4.477M6.343 6.343L3 3m3.343 3.343l2.829 2.829m4.243 4.243l2.829 2.829M6.343 6.343l11.314 11.314M14.121 14.121A3 3 0 009.879 9.879" />
+                    </svg>
+                  ) : (
+                    /* Eye icon */
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  )}
+                </button>
               </div>
             </div>
 
@@ -120,81 +139,41 @@ function Login() {
             </button>
           </form>
 
-          {/* Divider */}
-          <div className="mt-6 flex items-center gap-3 text-xs text-slate-400">
-            <div className="h-px flex-1 bg-slate-200" />
-            <span>Or sign in with</span>
-            <div className="h-px flex-1 bg-slate-200" />
-          </div>
+          {/* Divider — only show if Google OAuth is available */}
+          {hasGoogleOAuth && (
+            <>
+              <div className="mt-6 flex items-center gap-3 text-xs text-slate-400">
+                <div className="h-px flex-1 bg-slate-200" />
+                <span>Or sign in with</span>
+                <div className="h-px flex-1 bg-slate-200" />
+              </div>
 
-          {/* Social buttons */}
-          <div className="mt-4 grid grid-cols-3 gap-3 text-xs">
-            {hasGoogleOAuth ? (
-              <GoogleSignInButton
-                onLoginSuccess={async (tokenResponse) => {
-                  try {
-                    setError("");
-                    const res = await axios.post("/api/auth/oauth/google", {
-                      accessToken: tokenResponse.access_token,
-                    });
-                    login(res.data);
-                    navigate("/dashboard");
-                  } catch (err) {
-                    setError(
-                      err.response?.data?.message ||
-                        err.response?.data ||
-                        "Google sign-in failed. Please try again."
-                    );
-                  }
-                }}
-                onLoginError={() => {
-                  setError("Google sign-in failed. Please try again.");
-                }}
-              />
-            ) : (
-              <button
-                type="button"
-                disabled
-                title="Set VITE_GOOGLE_CLIENT_ID in frontend/.env and restart the dev server"
-                className="flex items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white/70 px-3 py-3 text-slate-400 shadow-sm opacity-70"
-              >
-                <span className="sr-only">Google sign-in unavailable</span>
-                <span className="text-sm font-semibold">G</span>
-              </button>
-            )}
-            <button
-              type="button"
-              className="flex items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white/90 px-3 py-3 text-slate-700 shadow-sm hover:bg-slate-50"
-            >
-              <span className="sr-only">Sign in with Facebook</span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                className="h-5 w-5"
-              >
-                <path
-                  fill="#1877F2"
-                  d="M22 12.07C22 6.5 17.52 2 12 2S2 6.5 2 12.07C2 17.1 5.66 21.24 10.44 22v-7.03H7.9v-2.9h2.54V9.41c0-2.5 1.49-3.89 3.77-3.89 1.09 0 2.24.2 2.24.2v2.47h-1.26c-1.24 0-1.63.77-1.63 1.56v1.87h2.78l-.44 2.9h-2.34V22C18.34 21.24 22 17.1 22 12.07z"
+              {/* Google sign-in only */}
+              <div className="mt-4 flex justify-center">
+                <GoogleSignInButton
+                  onLoginSuccess={async (tokenResponse) => {
+                    try {
+                      setError("");
+                      const res = await axios.post("/api/auth/oauth/google", {
+                        accessToken: tokenResponse.access_token,
+                      });
+                      login(res.data);
+                      navigate("/dashboard");
+                    } catch (err) {
+                      setError(
+                        err.response?.data?.message ||
+                          err.response?.data ||
+                          "Google sign-in failed. Please try again."
+                      );
+                    }
+                  }}
+                  onLoginError={() => {
+                    setError("Google sign-in failed. Please try again.");
+                  }}
                 />
-              </svg>
-            </button>
-            <button
-              type="button"
-              className="flex items-center justify-center gap-1 rounded-2xl border border-slate-200 bg-white/90 px-3 py-3 text-slate-700 shadow-sm hover:bg-slate-50"
-            >
-              <span className="sr-only">Sign in with Apple</span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                className="h-5 w-5"
-              >
-                <path
-                  fill="#111827"
-                  d="M16.38 2c-.97.07-2.14.68-2.83 1.48-.62.7-1.16 1.82-.95 2.9 1.06.03 2.16-.6 2.82-1.4.64-.77 1.14-1.9.96-2.98zM19.9 8.38c-.06-.12-1.52-.91-2.99-.89-.94.01-1.79.35-2.37.35-.6 0-1.52-.34-2.5-.33-1.28.02-2.46.74-3.12 1.89-1.33 2.3-.34 5.68.94 7.54.62.9 1.35 1.9 2.32 1.86.93-.04 1.28-.6 2.4-.6 1.13 0 1.44.6 2.41.58.99-.02 1.61-.9 2.21-1.8.7-1.03.99-2.03 1-2.08-.02-.01-1.93-.74-1.95-2.94-.02-1.84 1.5-2.72 1.57-2.78z"
-                />
-              </svg>
-            </button>
-          </div>
+              </div>
+            </>
+          )}
 
           <p className="mt-6 text-center text-xs text-slate-500">
             Don&apos;t have an account?{" "}

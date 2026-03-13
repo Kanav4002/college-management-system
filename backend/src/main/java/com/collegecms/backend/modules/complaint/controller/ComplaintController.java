@@ -1,6 +1,7 @@
 package com.collegecms.backend.modules.complaint.controller;
 
 import com.collegecms.backend.modules.complaint.dto.ComplaintResponse;
+import com.collegecms.backend.modules.complaint.dto.ComplaintStatsResponse;
 import com.collegecms.backend.modules.complaint.dto.CreateComplaintRequest;
 import com.collegecms.backend.modules.complaint.service.ComplaintService;
 import lombok.RequiredArgsConstructor;
@@ -64,5 +65,22 @@ public class ComplaintController {
             @PathVariable Long id,
             Authentication auth) {
         return ResponseEntity.ok(complaintService.resolveComplaint(id, auth.getName()));
+    }
+
+    // ── Stats ──────────────────────────────────────────────────────
+
+    @GetMapping("/stats/student")
+    public ResponseEntity<ComplaintStatsResponse> studentStats(Authentication auth) {
+        return ResponseEntity.ok(complaintService.getStudentStats(auth.getName()));
+    }
+
+    @GetMapping("/stats/mentor")
+    public ResponseEntity<ComplaintStatsResponse> mentorStats(Authentication auth) {
+        return ResponseEntity.ok(complaintService.getMentorStats(auth.getName()));
+    }
+
+    @GetMapping("/stats/admin")
+    public ResponseEntity<ComplaintStatsResponse> adminStats(Authentication auth) {
+        return ResponseEntity.ok(complaintService.getAdminStats(auth.getName()));
     }
 }

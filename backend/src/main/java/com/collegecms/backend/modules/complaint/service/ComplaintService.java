@@ -1,6 +1,7 @@
 package com.collegecms.backend.modules.complaint.service;
 
 import com.collegecms.backend.modules.complaint.dto.ComplaintResponse;
+import com.collegecms.backend.modules.complaint.dto.ComplaintStatsResponse;
 import com.collegecms.backend.modules.complaint.dto.CreateComplaintRequest;
 import com.collegecms.backend.modules.complaint.entity.Complaint;
 import com.collegecms.backend.modules.complaint.entity.ComplaintStatus;
@@ -12,10 +13,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -170,15 +170,93 @@ public class ComplaintService {
     }
 
     // ──────────────────────────────────────────────────────────────
-    // Stats helpers (used by panels)
+    // Stats
     // ──────────────────────────────────────────────────────────────
 
-    public long countByStatus(ComplaintStatus status) {
-        return complaintRepository.countByStatus(status);
+    /** Student stats — only their own complaints. */
+    public ComplaintStatsResponse getStudentStats(String email) {
+        User student = getUser(email);
+        if (student.getRole() != Role.STUDENT) {
+            throw new RuntimeException("Only students can access student stats");
+        }
+
+        long total    = complaintRepository.countByStudent(student);
+        long pending  = complaintRepository.countByStudentAndStatus(student, ComplaintStatus.PENDING);
+        long approved = complaintRepository.countByStudentAndStatus(student, ComplaintStatus.APPROVED);
+        long rejected = complaintRepository.countByStudentAndStatus(student, ComplaintStatus.REJECTED);
+        long resolved = complaintRepository.countByStudentAndStatus(student, ComplaintStatus.RESOLVED);
+
+        // Category breakdown for the student's complaints
+        Map<String, Long> byCategory = complaintRepository.findByStudentOrderByCreatedAtDesc(student)
+                .stream()
+                .collect(Collectors.groupingBy(Complaint::getCategory, Collectors.counting()));
+
+        return ComplaintStatsResponse.builder()
+                .total(total).pending(pending).approved(approved)
+                .rejected(rejected).resolved(resolved)
+                .byCategory(byCategory)
+                .build();
     }
 
-    public long countByStudent(String studentEmail) {
-        User student = getUser(studentEmail);
-        return complaintRepository.findByStudentOrderByCreatedAtDesc(student).size();
+    /** Mentor stats — complaints they've acted on + pending pool. */
+    public ComplaintStatsResponse getMentorStats(String email) {
+        User mentor = getUser(email);
+        if (mentor.getRole() != Role.MENTOR) {
+            throw new RuntimeException("Only mentors can access mentor stats");
+        }
+
+        long acted    = complaintRepository.countByMentor(mentor);
+        long approved = complaintRepository.countByMentorAndStatus(mentor, ComplaintStatus.APPROVED);
+        long rejected = complaintRepository.countByMentorAndStatus(mentor, ComplaintStatus.REJECTED);
+        long pending  = complaintRepository.countByStatus(ComplaintStatus.PENDING);
+
+        // Category breakdown across complaints this mentor handled
+        Map<String, Long> byCategory = complaintRepository.findByMentorOrderByCreatedAtDesc(mentor)
+                .stream()
+                .collect(Collectors.groupingBy(Complaint::getCategory, Collectors.counting()));
+
+        return ComplaintStatsResponse.builder()
+                .total(acted + pending).pending(pending)
+                .approved(approved).rejected(rejected)
+                .resolved(0)
+                .byCategory(byCategory)
+                .build();
+    }
+
+    /** Admin stats — system-wide. */
+    public ComplaintStatsResponse getAdminStats(String email) {
+        User admin = getUser(email);
+        if (admin.getRole() != Role.ADMIN) {
+            throw new RuntimeException("Only admins can access admin stats");
+        }
+
+        long total    = complaintRepository.count();
+        long pending  = complaintRepository.countByStatus(ComplaintStatus.PENDING);
+        long approved = complaintRepository.countByStatus(ComplaintStatus.APPROVED);
+        long rejected = complaintRepository.countByStatus(ComplaintStatus.REJECTED);
+        long resolved = complaintRepository.countByStatus(ComplaintStatus.RESOLVED);
+
+        // Category breakdown across ALL complaints
+        Map<String, Long> byCategory = complaintRepository.findAll()
+                .stream()
+                .collect(Collectors.groupingBy(Complaint::getCategory, Collectors.counting()));
+
+        // Average resolution time (created → updatedAt for RESOLVED complaints)
+        List<Complaint> resolvedList = complaintRepository.findByStatusOrderByCreatedAtDesc(ComplaintStatus.RESOLVED);
+        Double avgHours = null;
+        if (!resolvedList.isEmpty()) {
+            avgHours = resolvedList.stream()
+                    .filter(c -> c.getUpdatedAt() != null)
+                    .mapToLong(c -> Duration.between(c.getCreatedAt(), c.getUpdatedAt()).toHours())
+                    .average()
+                    .orElse(0);
+        }
+
+        return ComplaintStatsResponse.builder()
+                .total(total).pending(pending).approved(approved)
+                .rejected(rejected).resolved(resolved)
+                .byCategory(byCategory)
+                .avgResolutionHours(avgHours)
+                .build();
     }
 }

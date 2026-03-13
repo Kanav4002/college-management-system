@@ -15,27 +15,60 @@ const priorityStyles = {
   HIGH:   "bg-red-100 text-red-600",
 };
 
+/* ── tiny bar chart component ─────────────────────────────────── */
+function MiniBarChart({ data }) {
+  if (!data || Object.keys(data).length === 0) {
+    return <p className="text-xs text-gray-400 italic">No data yet</p>;
+  }
+  const max = Math.max(...Object.values(data), 1);
+  const colors = [
+    "bg-blue-500", "bg-indigo-500", "bg-emerald-500",
+    "bg-amber-500", "bg-rose-500", "bg-cyan-500",
+  ];
+  return (
+    <div className="space-y-2">
+      {Object.entries(data).map(([label, count], i) => (
+        <div key={label} className="flex items-center gap-2">
+          <span className="w-24 text-xs text-gray-500 truncate text-right">{label}</span>
+          <div className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all ${colors[i % colors.length]}`}
+              style={{ width: `${(count / max) * 100}%` }}
+            />
+          </div>
+          <span className="w-6 text-xs font-semibold text-gray-600 text-right">{count}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function MentorPanel() {
   const [complaints, setComplaints] = useState([]);
+  const [stats, setStats] = useState(null);
   const [loading, setLoading]       = useState(true);
-  const [actionId, setActionId]     = useState(null); // id of complaint being acted on
+  const [actionId, setActionId]     = useState(null);
   const [error, setError]           = useState("");
   const [success, setSuccess]       = useState("");
 
-  const fetchComplaints = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
-      const { data } = await api.get("/complaints/assigned");
-      setComplaints(data);
+      const [complaintsRes, statsRes] = await Promise.all([
+        api.get("/complaints/assigned"),
+        api.get("/complaints/stats/mentor"),
+      ]);
+      setComplaints(complaintsRes.data);
+      setStats(statsRes.data);
     } catch {
-      setError("Failed to load complaints.");
+      setError("Failed to load data.");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchComplaints();
-  }, [fetchComplaints]);
+    fetchData();
+  }, [fetchData]);
 
   const act = async (id, action) => {
     setError("");
@@ -46,6 +79,9 @@ function MentorPanel() {
       setComplaints((prev) => prev.map((c) => (c.id === id ? data : c)));
       setSuccess(`Complaint #${id} ${action === "approve" ? "approved" : "rejected"}.`);
       setTimeout(() => setSuccess(""), 4000);
+      // Refresh stats
+      const { data: newStats } = await api.get("/complaints/stats/mentor");
+      setStats(newStats);
     } catch (err) {
       setError(err.response?.data?.message || `Failed to ${action} complaint.`);
     } finally {
@@ -53,14 +89,10 @@ function MentorPanel() {
     }
   };
 
-  const pending  = complaints.filter((c) => c.status === "PENDING").length;
-  const approved = complaints.filter((c) => c.status === "APPROVED").length;
-  const rejected = complaints.filter((c) => c.status === "REJECTED").length;
-
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow">
+      <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-blue-600">Mentor Panel</h1>
           <Link to="/dashboard" className="text-sm text-blue-500 hover:underline">
@@ -70,18 +102,28 @@ function MentorPanel() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-        {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        {/* ── Stats Cards ─────────────────────────────────────── */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: "Pending Review",  value: pending,  color: "text-yellow-500" },
-            { label: "Approved",         value: approved, color: "text-blue-600"   },
-            { label: "Rejected",         value: rejected, color: "text-red-500"    },
+            { label: "Total Assigned", value: stats?.total    ?? "–", icon: "📋", color: "text-gray-700",   bg: "bg-gray-50"   },
+            { label: "Pending Review", value: stats?.pending  ?? "–", icon: "⏳", color: "text-yellow-600", bg: "bg-yellow-50" },
+            { label: "Approved",       value: stats?.approved ?? "–", icon: "✅", color: "text-blue-600",   bg: "bg-blue-50"   },
+            { label: "Rejected",       value: stats?.rejected ?? "–", icon: "❌", color: "text-red-500",    bg: "bg-red-50"    },
           ].map((s) => (
-            <div key={s.label} className="bg-white rounded-2xl shadow p-6">
-              <p className="text-sm text-gray-500">{s.label}</p>
-              <p className={`text-3xl font-extrabold mt-1 ${s.color}`}>{s.value}</p>
+            <div key={s.label} className={`${s.bg} rounded-2xl shadow-sm p-5 border border-gray-100`}>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg">{s.icon}</span>
+                <span className="text-xs font-medium text-gray-500">{s.label}</span>
+              </div>
+              <p className={`text-3xl font-extrabold ${s.color}`}>{s.value}</p>
             </div>
           ))}
+        </div>
+
+        {/* ── Category Breakdown ─────────────────────────────── */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <h2 className="text-base font-semibold text-gray-800 mb-4">Handled Complaints by Category</h2>
+          <MiniBarChart data={stats?.byCategory} />
         </div>
 
         {/* Alerts */}
@@ -96,8 +138,8 @@ function MentorPanel() {
           </div>
         )}
 
-        {/* Complaints Table */}
-        <div className="bg-white rounded-2xl shadow p-6">
+        {/* ── Complaints Table ────────────────────────────────── */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Assigned Complaints</h2>
 
           {loading ? (

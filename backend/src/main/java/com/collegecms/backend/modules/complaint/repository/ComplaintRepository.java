@@ -18,4 +18,15 @@ public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
     List<Complaint> findAllByOrderByCreatedAtDesc();
 
     long countByStatus(ComplaintStatus status);
+
+    // ── Stats queries ──────────────────────────────────────────────
+    long countByStudent(User student);
+
+    long countByStudentAndStatus(User student, ComplaintStatus status);
+
+    long countByMentor(User mentor);
+
+    long countByMentorAndStatus(User mentor, ComplaintStatus status);
+
+    long countByCategory(String category);
 }
