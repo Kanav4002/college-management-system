@@ -59,6 +59,7 @@ function SubmitComplaint() {
   const navigate = useNavigate();
   const { auth } = useAuth();
   const isMentor = auth?.role === "MENTOR";
+  const isAdmin = auth?.role === "ADMIN";
 
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -103,10 +104,10 @@ function SubmitComplaint() {
           : null,
       };
 
-      // Mentors use /complaints/mentor, students use /complaints
-      const endpoint = isMentor ? "/complaints/mentor" : "/complaints";
+      // Route to correct endpoint by role
+      const endpoint = isAdmin ? "/complaints/admin" : isMentor ? "/complaints/mentor" : "/complaints";
       await api.post(endpoint, payload);
-      navigate(isMentor ? "/mentor" : "/student");
+      navigate(isAdmin ? "/admin" : isMentor ? "/mentor" : "/student");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to submit complaint.");
     } finally {
@@ -133,14 +134,16 @@ function SubmitComplaint() {
             Submit a Complaint
           </h1>
 
-          {/* Mentor routing banner */}
-          {isMentor && (
+          {/* Mentor / Admin routing banner */}
+          {(isMentor || isAdmin) && (
             <p className="text-center text-sm mb-6" style={{ color: "var(--text-secondary)" }}>
-              Your complaint will be <strong>auto-routed</strong> to the appropriate department for faster resolution.
+              {isAdmin
+                ? "Admin-created complaints are submitted with PENDING status."
+                : "Your complaint will be auto-routed to the appropriate department for faster resolution."}
             </p>
           )}
 
-          {!isMentor && <div className="mb-8" />}
+          {!isMentor && !isAdmin && <div className="mb-8" />}
 
           {error && (
             <div className="mb-6 bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-xl text-sm">

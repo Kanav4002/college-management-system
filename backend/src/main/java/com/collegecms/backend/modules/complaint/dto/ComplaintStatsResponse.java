@@ -16,6 +16,7 @@ public class ComplaintStatsResponse {
     private long assigned;
     private long rejected;
     private long resolved;
+    private long closed;
 
     // ── Breakdowns (label → count) ──────────────────────────────
     private Map<String, Long> byCategory;

@@ -58,7 +58,7 @@ function App() {
       <Route
         path="/submit-complaint"
         element={
-          <ProtectedRoute allowedRoles={["STUDENT", "MENTOR"]}>
+          <ProtectedRoute allowedRoles={["STUDENT", "MENTOR", "ADMIN"]}>
             <SubmitComplaint />
           </ProtectedRoute>
         }

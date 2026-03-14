@@ -5,5 +5,6 @@ public enum ComplaintStatus {
     APPROVED,
     REJECTED,
     ASSIGNED,
-    RESOLVED
+    RESOLVED,
+    CLOSED
 }

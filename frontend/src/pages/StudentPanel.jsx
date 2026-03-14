@@ -12,6 +12,7 @@ const statusStyles = {
   REJECTED: "bg-red-100 text-red-600",
   ASSIGNED: "bg-indigo-100 text-indigo-600",
   RESOLVED: "bg-green-100 text-green-600",
+  CLOSED:   "bg-gray-200 text-gray-600",
 };
 
 const priorityStyles = {
