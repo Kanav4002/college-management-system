@@ -1,8 +1,142 @@
 @import "tailwindcss";
 
+/* ── Auth page cloud background ──────────────────────────────── */
 .auth-cloud-bg {
   background-image: url("https://images.unsplash.com/photo-1428908728789-d2de25dbd4e2?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
+}
+
+/* ── Dark theme (palette: #0088D1, #4A4E5A, #35383F, #2A2C31, #232527) ── */
+:root {
+  --accent: #0088D1;
+  --bg-body: #ffffff;
+  --bg-card: #ffffff;
+  --bg-elevated: #f9fafb;
+  --bg-input: #f3f4f6;
+  --border: #e5e7eb;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --table-hover: #f9fafb;
+  --table-header-bg: #f9fafb;
+  --chart-track: #e5e7eb;
+}
+
+.dark {
+  --accent: #0088D1;
+  --bg-body: #232527;
+  --bg-card: #2A2C31;
+  --bg-elevated: #35383F;
+  --bg-input: #35383F;
+  --border: #4A4E5A;
+  --text-primary: #F1F5F9;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --table-hover: #35383F;
+  --table-header-bg: #35383F;
+  --chart-track: #4A4E5A;
+}
+
+/* Apply dark mode to body & root elements */
+.dark body,
+.dark {
+  background-color: var(--bg-body);
+  color: var(--text-primary);
+}
+
+/* ── Glassmorphism Navbar ────────────────────────────────────── */
+.glass-navbar {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.1),
+    inset 0 0 8px 4px rgba(255, 255, 255, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-navbar::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.8),
+    transparent
+  );
+}
+
+.glass-navbar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.8),
+    transparent,
+    rgba(255, 255, 255, 0.3)
+  );
+}
+
+/* Light-mode glass override (slightly different tinting) */
+:root:not(.dark) .glass-navbar {
+  background: rgba(255, 255, 255, 0.65);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Dark-mode glass tweaks */
+.dark .glass-navbar {
+  background: rgba(42, 44, 49, 0.75);
+  border-bottom-color: rgba(74, 78, 90, 0.5);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.03),
+    inset 0 0 8px 4px rgba(255, 255, 255, 0.02);
+}
+
+.dark .glass-navbar::before {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.15),
+    transparent
+  );
+}
+
+.dark .glass-navbar::after {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.15),
+    transparent,
+    rgba(255, 255, 255, 0.05)
+  );
+}
+
+/* ── Utility helpers for dark mode cards / panels ────────────── */
+.dark .card {
+  background-color: var(--bg-card);
+  border-color: var(--border);
+}
+
+/* ── Blue accent stripe at the very top of page ──────────────── */
+.accent-stripe {
+  height: 4px;
+  background: var(--accent);
 }

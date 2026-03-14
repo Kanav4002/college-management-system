@@ -3,18 +3,25 @@ package com.collegecms.backend.modules.complaint.repository;
 import com.collegecms.backend.modules.complaint.entity.Complaint;
 import com.collegecms.backend.modules.complaint.entity.ComplaintStatus;
 import com.collegecms.backend.modules.user.entity.User;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
 
 public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
 
+    // ── Eagerly fetch student + mentor to avoid N+1 ──────────────
+
+    @EntityGraph(attributePaths = {"student", "mentor"})
     List<Complaint> findByStudentOrderByCreatedAtDesc(User student);
 
+    @EntityGraph(attributePaths = {"student", "mentor"})
     List<Complaint> findByMentorOrderByCreatedAtDesc(User mentor);
 
+    @EntityGraph(attributePaths = {"student", "mentor"})
     List<Complaint> findByStatusOrderByCreatedAtDesc(ComplaintStatus status);
 
+    @EntityGraph(attributePaths = {"student", "mentor"})
     List<Complaint> findAllByOrderByCreatedAtDesc();
 
     long countByStatus(ComplaintStatus status);

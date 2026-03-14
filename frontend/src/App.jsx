@@ -7,6 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import AdminPanel from "./pages/AdminPanel";
 import MentorPanel from "./pages/MentorPanel";
 import StudentPanel from "./pages/StudentPanel";
+import SubmitComplaint from "./pages/SubmitComplaint";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
@@ -50,6 +51,14 @@ function App() {
         element={
           <ProtectedRoute allowedRoles={["STUDENT"]}>
             <StudentPanel />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/submit-complaint"
+        element={
+          <ProtectedRoute allowedRoles={["STUDENT"]}>
+            <SubmitComplaint />
           </ProtectedRoute>
         }
       />

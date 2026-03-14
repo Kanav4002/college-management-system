@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import Navbar from "../components/Navbar";
 import api from "../api/api";
 
 const PANEL_CONFIG = {
@@ -8,19 +9,16 @@ const PANEL_CONFIG = {
     title: "Admin Panel",
     description: "Manage users, courses, and system settings.",
     path: "/admin",
-    accent: "blue",
   },
   MENTOR: {
     title: "Mentor Panel",
     description: "View assigned students, track progress, and give feedback.",
     path: "/mentor",
-    accent: "indigo",
   },
   STUDENT: {
     title: "Student Panel",
     description: "View courses, attendance, grades, and announcements.",
     path: "/student",
-    accent: "emerald",
   },
 };
 
@@ -31,8 +29,7 @@ const STATS_ENDPOINT = {
 };
 
 function Dashboard() {
-  const { auth, logout } = useAuth();
-  const navigate = useNavigate();
+  const { auth } = useAuth();
   const [stats, setStats] = useState(null);
 
   const role = auth?.role;
@@ -42,36 +39,30 @@ function Dashboard() {
     if (!role || !STATS_ENDPOINT[role]) return;
     api.get(STATS_ENDPOINT[role])
       .then((res) => setStats(res.data))
-      .catch(() => {}); // silently fail — stats are nice-to-have here
+      .catch(() => {});
   }, [role]);
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
-
-  /* Build quick-glance cards depending on role */
   const quickStats = (() => {
     if (!stats) return [];
     switch (role) {
       case "STUDENT":
         return [
-          { label: "My Complaints", value: stats.total,    icon: "📋", color: "text-gray-700"  },
-          { label: "Pending",       value: stats.pending,  icon: "⏳", color: "text-yellow-600" },
-          { label: "Resolved",      value: stats.resolved, icon: "🎉", color: "text-green-600" },
+          { label: "My Complaints", value: stats.total,    icon: "📋", color: "var(--text-primary)"  },
+          { label: "Pending",       value: stats.pending,  icon: "⏳", color: "#ca8a04" },
+          { label: "Resolved",      value: stats.resolved, icon: "🎉", color: "#16a34a" },
         ];
       case "MENTOR":
         return [
-          { label: "To Review",  value: stats.pending,  icon: "⏳", color: "text-yellow-600" },
-          { label: "Approved",   value: stats.approved, icon: "✅", color: "text-blue-600"   },
-          { label: "Rejected",   value: stats.rejected, icon: "❌", color: "text-red-500"    },
+          { label: "To Review",  value: stats.pending,  icon: "⏳", color: "#ca8a04" },
+          { label: "Approved",   value: stats.approved, icon: "✅", color: "#2563eb" },
+          { label: "Rejected",   value: stats.rejected, icon: "❌", color: "#ef4444" },
         ];
       case "ADMIN":
         return [
-          { label: "Total Complaints", value: stats.total,    icon: "📋", color: "text-gray-700"   },
-          { label: "Pending",          value: stats.pending,  icon: "⏳", color: "text-yellow-600" },
-          { label: "Approved",         value: stats.approved, icon: "✅", color: "text-blue-600"   },
-          { label: "Resolved",         value: stats.resolved, icon: "🎉", color: "text-green-600"  },
+          { label: "Total Complaints", value: stats.total,    icon: "📋", color: "var(--text-primary)" },
+          { label: "Pending",          value: stats.pending,  icon: "⏳", color: "#ca8a04" },
+          { label: "Approved",         value: stats.approved, icon: "✅", color: "#2563eb" },
+          { label: "Resolved",         value: stats.resolved, icon: "🎉", color: "#16a34a" },
         ];
       default:
         return [];
@@ -79,61 +70,56 @@ function Dashboard() {
   })();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-blue-600">Dashboard</h1>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-gray-500">
-              {auth?.email}{" "}
-              <span className="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
-                {role}
-              </span>
-            </span>
-            <button
-              onClick={handleLogout}
-              className="text-sm text-gray-500 hover:text-red-500 transition cursor-pointer"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen" style={{ background: "var(--bg-body)" }}>
+      <Navbar title="Dashboard" />
 
-      {/* Content */}
-      <main className="max-w-7xl mx-auto px-4 py-10 space-y-8">
-        <h2 className="text-xl font-semibold text-gray-800">
+      <main className="max-w-7xl mx-auto px-6 py-10 space-y-8">
+        <h2 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
           Welcome back!
         </h2>
 
-        {/* Quick Stats */}
         {quickStats.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {quickStats.map((s) => (
-              <div key={s.label} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
+              <div
+                key={s.label}
+                className="rounded-2xl shadow-sm p-5"
+                style={{
+                  background: "var(--bg-card)",
+                  border: "1px solid var(--border)",
+                }}
+              >
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-lg">{s.icon}</span>
-                  <span className="text-xs font-medium text-gray-500">{s.label}</span>
+                  <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+                    {s.label}
+                  </span>
                 </div>
-                <p className={`text-3xl font-extrabold ${s.color}`}>{s.value}</p>
+                <p className="text-3xl font-extrabold" style={{ color: s.color }}>
+                  {s.value}
+                </p>
               </div>
             ))}
           </div>
         )}
 
-        {/* Panel Link */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {panel && (
             <Link
               to={panel.path}
-              className="block bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition p-6"
+              className="block rounded-2xl shadow-sm hover:shadow-md transition p-6"
+              style={{
+                background: "var(--bg-card)",
+                border: "1px solid var(--border)",
+              }}
             >
-              <h3 className="text-lg font-bold text-blue-600 mb-2">
+              <h3 className="text-lg font-bold mb-2" style={{ color: "var(--accent)" }}>
                 {panel.title}
               </h3>
-              <p className="text-sm text-gray-500">{panel.description}</p>
-              <span className="inline-block mt-4 text-xs font-medium text-blue-500">
+              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                {panel.description}
+              </p>
+              <span className="inline-block mt-4 text-xs font-medium" style={{ color: "var(--accent)" }}>
                 Go to panel →
               </span>
             </Link>
