@@ -16,8 +16,10 @@ public class ComplaintStatsResponse {
     private long rejected;
     private long resolved;
 
-    // ── Category breakdown (label → count) ─────────────────────
+    // ── Breakdowns (label → count) ──────────────────────────────
     private Map<String, Long> byCategory;
+    private Map<String, Long> byIssueType;
+    private Map<String, Long> byBuilding;
 
     // ── Admin-specific ──────────────────────────────────────────
     private Double avgResolutionHours;
