@@ -10,18 +10,18 @@ import java.util.List;
 
 public interface ComplaintRepository extends JpaRepository<Complaint, Long> {
 
-    // ── Eagerly fetch student + mentor to avoid N+1 ──────────────
+    // ── Eagerly fetch student + student.group + mentor to avoid N+1 / LazyInit ──
 
-    @EntityGraph(attributePaths = {"student", "mentor"})
+    @EntityGraph(attributePaths = {"student", "student.group", "mentor"})
     List<Complaint> findByStudentOrderByCreatedAtDesc(User student);
 
-    @EntityGraph(attributePaths = {"student", "mentor"})
+    @EntityGraph(attributePaths = {"student", "student.group", "mentor"})
     List<Complaint> findByMentorOrderByCreatedAtDesc(User mentor);
 
-    @EntityGraph(attributePaths = {"student", "mentor"})
+    @EntityGraph(attributePaths = {"student", "student.group", "mentor"})
     List<Complaint> findByStatusOrderByCreatedAtDesc(ComplaintStatus status);
 
-    @EntityGraph(attributePaths = {"student", "mentor"})
+    @EntityGraph(attributePaths = {"student", "student.group", "mentor"})
     List<Complaint> findAllByOrderByCreatedAtDesc();
 
     long countByStatus(ComplaintStatus status);

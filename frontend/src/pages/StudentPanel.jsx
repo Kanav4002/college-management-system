@@ -1,16 +1,26 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/Navbar";
+import ComplaintDetailModal from "../components/ComplaintDetailModal";
 import api from "../api/api";
 
-/* ── Status badge styles ──────────────────────────────────────── */
+/* ── Status / Priority style maps ─────────────────────────────── */
 const statusStyles = {
   PENDING:  "bg-orange-100 text-orange-600",
   APPROVED: "bg-blue-100 text-blue-600",
   REJECTED: "bg-red-100 text-red-600",
+  ASSIGNED: "bg-indigo-100 text-indigo-600",
   RESOLVED: "bg-green-100 text-green-600",
 };
+
+const priorityStyles = {
+  LOW:    "bg-gray-100 text-gray-600",
+  MEDIUM: "bg-orange-100 text-orange-600",
+  HIGH:   "bg-red-100 text-red-600",
+};
+
+const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
 
 /* ── Horizontal bar chart with count inside bars ──────────────── */
 function CategoryBarChart({ data }) {
@@ -48,6 +58,64 @@ function Card({ children, className = "" }) {
   );
 }
 
+/* ── Clickable Complaint Row (opens modal) ────────────────────── */
+function ComplaintRow({ complaint: c, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer rounded-xl transition-all duration-150 hover:shadow-md"
+      style={{
+        background: "var(--bg-card)",
+        border: "1px solid var(--border)",
+      }}
+    >
+      {/* ID */}
+      <span className="text-xs font-mono w-8 shrink-0" style={{ color: "var(--text-muted)" }}>#{c.id}</span>
+
+      {/* Priority dot */}
+      <span
+        className="w-2.5 h-2.5 rounded-full shrink-0"
+        title={c.priority}
+        style={{
+          background: c.priority === "HIGH" ? "#ef4444" : c.priority === "MEDIUM" ? "#f59e0b" : "#9ca3af",
+        }}
+      />
+
+      {/* Title */}
+      <span className="flex-1 font-medium text-sm truncate" style={{ color: "var(--text-primary)" }}>
+        {c.title}
+      </span>
+
+      {/* Issue Type badge */}
+      <span className="hidden md:inline-block px-2 py-0.5 rounded-md text-[11px] font-medium shrink-0" style={{ background: "var(--bg-input)", color: "var(--text-secondary)" }}>
+        {c.issueType || c.category}
+      </span>
+
+      {/* Status badge */}
+      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap shrink-0 ${statusStyles[c.status]}`}>
+        {c.status}
+      </span>
+
+      {/* Date */}
+      <span className="hidden lg:inline text-[11px] shrink-0 w-20 text-right" style={{ color: "var(--text-muted)" }}>
+        {new Date(c.createdAt).toLocaleDateString()}
+      </span>
+
+      {/* View indicator arrow */}
+      <svg
+        className="w-4 h-4 shrink-0"
+        style={{ color: "var(--text-muted)" }}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+      </svg>
+    </button>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════════ */
 function StudentPanel() {
   const { auth } = useAuth();
@@ -55,6 +123,10 @@ function StudentPanel() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [filter, setFilter] = useState("ALL");
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -72,6 +144,49 @@ function StudentPanel() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  const counts = {
+    ALL: complaints.length,
+    PENDING: complaints.filter((c) => c.status === "PENDING").length,
+    APPROVED: complaints.filter((c) => c.status === "APPROVED").length,
+    REJECTED: complaints.filter((c) => c.status === "REJECTED").length,
+    RESOLVED: complaints.filter((c) => c.status === "RESOLVED").length,
+  };
+
+  const visible = useMemo(() => {
+    let list = filter === "ALL" ? [...complaints] : complaints.filter((c) => c.status === filter);
+
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter((c) =>
+        c.title?.toLowerCase().includes(q) ||
+        c.description?.toLowerCase().includes(q) ||
+        c.building?.toLowerCase().includes(q) ||
+        c.issueType?.toLowerCase().includes(q) ||
+        c.category?.toLowerCase().includes(q) ||
+        String(c.id).includes(q)
+      );
+    }
+
+    switch (sortBy) {
+      case "newest":
+        list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        break;
+      case "oldest":
+        list.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        break;
+      case "priority":
+        list.sort((a, b) => (priorityOrder[a.priority] ?? 9) - (priorityOrder[b.priority] ?? 9));
+        break;
+      case "status":
+        list.sort((a, b) => a.status.localeCompare(b.status));
+        break;
+      default:
+        break;
+    }
+
+    return list;
+  }, [complaints, filter, search, sortBy]);
 
   const statCards = [
     {
@@ -125,49 +240,120 @@ function StudentPanel() {
         </Card>
 
         {/* Error */}
-        {error && <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-xl text-sm">{error}</div>}
+        {error && (
+          <div className="flex items-center gap-2 bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-xl text-sm">
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            {error}
+          </div>
+        )}
 
-        {/* Recent Complaints Table */}
-        <Card>
-          <h2 className="text-lg font-semibold mb-4" style={{ color: "var(--text-primary)" }}>Recent Complaints</h2>
-          {loading ? (
-            <p className="text-sm" style={{ color: "var(--text-muted)" }}>Loading…</p>
-          ) : complaints.length === 0 ? (
-            <p className="text-sm" style={{ color: "var(--text-muted)" }}>No complaints yet. Submit one above.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead>
-                  <tr style={{ background: "var(--table-header-bg)", borderBottom: "1px solid var(--border)" }}>
-                    {["ID", "Issue Type", "Location", "Status", "Date"].map((h) => (
-                      <th key={h} className="py-3 px-4 text-xs font-semibold uppercase" style={{ color: "var(--text-muted)" }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {complaints.map((c) => (
-                    <tr key={c.id} style={{ borderBottom: "1px solid var(--border)" }}>
-                      <td className="py-3 px-4 font-medium" style={{ color: "var(--text-primary)" }}>#{c.id}</td>
-                      <td className="py-3 px-4" style={{ color: "var(--text-primary)" }}>{c.issueType || c.title}</td>
-                      <td className="py-3 px-4" style={{ color: "var(--text-secondary)" }}>
-                        {c.building ? `${c.roomNumber ? "Room " + c.roomNumber : c.building}` : "—"}
-                      </td>
-                      <td className="py-3 px-4">
-                        <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold ${statusStyles[c.status]}`}>
-                          {c.status === "PENDING" ? "Pending" : c.status === "RESOLVED" ? "Resolved" : c.status === "APPROVED" ? "Approved" : "Rejected"}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 whitespace-nowrap" style={{ color: "var(--text-muted)" }}>
-                        {new Date(c.createdAt).toLocaleDateString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {/* ═══ My Complaints ═══════════════════════════════════ */}
+        <div
+          className="rounded-xl shadow-sm"
+          style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
+        >
+          {/* Header with title, search, sort, filters */}
+          <div className="px-5 pt-5 pb-4 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                My Complaints
+                <span className="text-sm font-normal ml-2" style={{ color: "var(--text-muted)" }}>
+                  {visible.length} of {complaints.length}
+                </span>
+              </h2>
+
+              <div className="flex items-center gap-3">
+                {/* Search */}
+                <div className="relative">
+                  <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search complaints…"
+                    className="text-sm py-2 pl-9 pr-3 rounded-lg w-56 outline-none focus:ring-2 focus:ring-[#0088D1]/30 transition"
+                    style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                  />
+                </div>
+
+                {/* Sort */}
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="text-sm py-2 px-3 rounded-lg outline-none cursor-pointer focus:ring-2 focus:ring-[#0088D1]/30 transition"
+                  style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                >
+                  <option value="newest">Newest first</option>
+                  <option value="oldest">Oldest first</option>
+                  <option value="priority">Priority (High → Low)</option>
+                  <option value="status">Status (A → Z)</option>
+                </select>
+              </div>
             </div>
-          )}
-        </Card>
+
+            {/* Status filter pills */}
+            <div className="flex gap-2 flex-wrap">
+              {["ALL", "PENDING", "APPROVED", "REJECTED", "RESOLVED"].map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`px-3 py-1 text-xs rounded-full font-medium transition cursor-pointer ${
+                    filter === f ? "bg-[#0088D1] text-white" : ""
+                  }`}
+                  style={filter !== f ? { background: "var(--bg-input)", color: "var(--text-secondary)" } : {}}
+                >
+                  {f} ({counts[f]})
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Complaint rows */}
+          <div className="px-5 pb-5">
+            {loading ? (
+              <div className="flex items-center justify-center py-12 gap-3" style={{ color: "var(--text-muted)" }}>
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                <span className="text-sm">Loading complaints…</span>
+              </div>
+            ) : visible.length === 0 ? (
+              <div className="text-center py-12">
+                <svg className="w-12 h-12 mx-auto mb-3" style={{ color: "var(--text-muted)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+                  {search ? `No complaints matching "${search}"` : "No complaints yet. Submit one above."}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {visible.map((c) => (
+                  <ComplaintRow
+                    key={c.id}
+                    complaint={c}
+                    onClick={() => setSelectedComplaint(c)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </main>
+
+      {/* Complaint Detail Modal */}
+      {selectedComplaint && (
+        <ComplaintDetailModal
+          complaint={selectedComplaint}
+          onClose={() => setSelectedComplaint(null)}
+          role="STUDENT"
+        />
+      )}
     </div>
   );
 }

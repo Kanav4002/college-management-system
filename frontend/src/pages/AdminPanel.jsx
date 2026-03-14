@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/Navbar";
+import ComplaintDetailModal from "../components/ComplaintDetailModal";
 import api from "../api/api";
 
 /* ── Status / Priority style maps ─────────────────────────────── */
@@ -8,6 +9,7 @@ const statusStyles = {
   PENDING:  "bg-yellow-100 text-yellow-700",
   APPROVED: "bg-blue-100 text-blue-700",
   REJECTED: "bg-red-100 text-red-700",
+  ASSIGNED: "bg-indigo-100 text-indigo-700",
   RESOLVED: "bg-green-100 text-green-700",
 };
 
@@ -16,6 +18,8 @@ const priorityStyles = {
   MEDIUM: "bg-orange-100 text-orange-600",
   HIGH:   "bg-red-100 text-red-600",
 };
+
+const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
 
 /* ── Donut chart (Issue Type) ──────────────────────────────────── */
 const DONUT_COLORS = ["#3B82F6", "#22C55E", "#F59E0B", "#6366F1", "#EF4444", "#06B6D4", "#8B5CF6", "#EC4899"];
@@ -57,21 +61,27 @@ function IssueTypeDonut({ data }) {
   );
 }
 
-/* ── Bar chart (Complaints by Building) ────────────────────────── */
+/* ── Horizontal bar chart (Complaints by Building) ────────────── */
 function BuildingBarChart({ data }) {
   if (!data || Object.keys(data).length === 0) {
     return <p className="text-sm italic" style={{ color: "var(--text-muted)" }}>No data yet</p>;
   }
-  const entries = Object.entries(data);
+  const entries = Object.entries(data).sort((a, b) => b[1] - a[1]);
   const max = Math.max(...entries.map(([, v]) => v), 1);
 
   return (
-    <div className="flex items-end justify-around gap-4 h-52 pt-4">
+    <div className="space-y-3">
       {entries.map(([label, count]) => (
-        <div key={label} className="flex flex-col items-center gap-1 flex-1">
-          <span className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>{count}</span>
-          <div className="w-full max-w-[48px] rounded-t-md bg-[#0088D1] transition-all" style={{ height: `${(count / max) * 160}px` }} />
-          <span className="text-xs text-center leading-tight mt-1 truncate w-full" style={{ color: "var(--text-secondary)" }}>{label}</span>
+        <div key={label} className="flex items-center gap-3">
+          <span className="w-32 text-xs font-medium text-right shrink-0 truncate" style={{ color: "var(--text-primary)" }} title={label}>{label}</span>
+          <div className="flex-1 h-6 rounded-md overflow-hidden relative" style={{ background: "var(--chart-track)" }}>
+            <div
+              className="h-full rounded-md bg-[#0088D1] transition-all flex items-center justify-end pr-2"
+              style={{ width: `${Math.max((count / max) * 100, 14)}%` }}
+            >
+              <span className="text-[11px] font-bold text-white">{count}</span>
+            </div>
+          </div>
         </div>
       ))}
     </div>
@@ -144,6 +154,69 @@ function Card({ children, className = "" }) {
   );
 }
 
+/* ── Clickable Complaint Row (opens modal) ────────────────────── */
+function ComplaintRow({ complaint: c, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer rounded-xl transition-all duration-150 hover:shadow-md"
+      style={{
+        background: "var(--bg-card)",
+        border: "1px solid var(--border)",
+      }}
+    >
+      {/* ID */}
+      <span className="text-xs font-mono w-8 shrink-0" style={{ color: "var(--text-muted)" }}>#{c.id}</span>
+
+      {/* Priority dot */}
+      <span
+        className="w-2.5 h-2.5 rounded-full shrink-0"
+        title={c.priority}
+        style={{
+          background: c.priority === "HIGH" ? "#ef4444" : c.priority === "MEDIUM" ? "#f59e0b" : "#9ca3af",
+        }}
+      />
+
+      {/* Title */}
+      <span className="flex-1 font-medium text-sm truncate" style={{ color: "var(--text-primary)" }}>
+        {c.title}
+      </span>
+
+      {/* Submitter */}
+      <span className="hidden sm:inline text-xs shrink-0 max-w-[120px] truncate" style={{ color: "var(--text-secondary)" }}>
+        {c.studentName}
+      </span>
+
+      {/* Issue Type badge */}
+      <span className="hidden md:inline-block px-2 py-0.5 rounded-md text-[11px] font-medium shrink-0" style={{ background: "var(--bg-input)", color: "var(--text-secondary)" }}>
+        {c.issueType || c.category}
+      </span>
+
+      {/* Status badge */}
+      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap shrink-0 ${statusStyles[c.status]}`}>
+        {c.status}
+      </span>
+
+      {/* Date */}
+      <span className="hidden lg:inline text-[11px] shrink-0 w-20 text-right" style={{ color: "var(--text-muted)" }}>
+        {new Date(c.createdAt).toLocaleDateString()}
+      </span>
+
+      {/* View indicator arrow */}
+      <svg
+        className="w-4 h-4 shrink-0"
+        style={{ color: "var(--text-muted)" }}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+      </svg>
+    </button>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════════ */
 function AdminPanel() {
   const { auth } = useAuth();
@@ -152,6 +225,9 @@ function AdminPanel() {
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState(null);
   const [filter, setFilter] = useState("ALL");
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
+  const [selectedComplaint, setSelectedComplaint] = useState(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -177,7 +253,8 @@ function AdminPanel() {
     try {
       const { data } = await api.put(`/complaints/${id}/resolve`);
       setComplaints((prev) => prev.map((c) => (c.id === id ? data : c)));
-      setSuccess(`Complaint #${id} resolved.`);
+      setSelectedComplaint((prev) => (prev?.id === id ? data : prev));
+      setSuccess(`Complaint #${id} resolved successfully.`);
       setTimeout(() => setSuccess(""), 4000);
       const { data: newStats } = await api.get("/complaints/stats/admin");
       setStats(newStats);
@@ -190,16 +267,56 @@ function AdminPanel() {
     ALL: complaints.length,
     PENDING: complaints.filter((c) => c.status === "PENDING").length,
     APPROVED: complaints.filter((c) => c.status === "APPROVED").length,
+    ASSIGNED: complaints.filter((c) => c.status === "ASSIGNED").length,
     REJECTED: complaints.filter((c) => c.status === "REJECTED").length,
     RESOLVED: complaints.filter((c) => c.status === "RESOLVED").length,
   };
-  const visible = filter === "ALL" ? complaints : complaints.filter((c) => c.status === filter);
+
+  /* ── Filtered, searched, sorted complaints ──────────────────── */
+  const visible = useMemo(() => {
+    let list = filter === "ALL" ? [...complaints] : complaints.filter((c) => c.status === filter);
+
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter((c) =>
+        c.title?.toLowerCase().includes(q) ||
+        c.description?.toLowerCase().includes(q) ||
+        c.studentName?.toLowerCase().includes(q) ||
+        c.mentorName?.toLowerCase().includes(q) ||
+        c.building?.toLowerCase().includes(q) ||
+        c.issueType?.toLowerCase().includes(q) ||
+        c.category?.toLowerCase().includes(q) ||
+        c.assignedDepartment?.toLowerCase().includes(q) ||
+        String(c.id).includes(q)
+      );
+    }
+
+    switch (sortBy) {
+      case "newest":
+        list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        break;
+      case "oldest":
+        list.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        break;
+      case "priority":
+        list.sort((a, b) => (priorityOrder[a.priority] ?? 9) - (priorityOrder[b.priority] ?? 9));
+        break;
+      case "status":
+        list.sort((a, b) => a.status.localeCompare(b.status));
+        break;
+      default:
+        break;
+    }
+
+    return list;
+  }, [complaints, filter, search, sortBy]);
 
   const recentActivity = complaints.slice(0, 10).map((c) => {
     let action = "New Complaint";
     let details = `Submitted ${c.issueType || c.category} issue${c.building ? ` in ${c.building}` : ""}`;
     if (c.status === "RESOLVED") { action = "Resolved"; details = `Complaint #${c.id} (${c.category}) marked as Resolved`; }
     else if (c.status === "APPROVED") { action = "Status Update"; details = `Complaint #${c.id} marked as Approved`; }
+    else if (c.status === "ASSIGNED") { action = "Auto-Routed"; details = `Complaint #${c.id} assigned to ${c.assignedDepartment || "department"}`; }
     else if (c.status === "REJECTED") { action = "Status Update"; details = `Complaint #${c.id} marked as Rejected`; }
     return { date: c.updatedAt || c.createdAt, user: c.status === "PENDING" ? c.studentName : (c.mentorName || "Admin User"), action, details };
   });
@@ -258,15 +375,72 @@ function AdminPanel() {
         </div>
 
         {/* Alerts */}
-        {success && <div className="bg-green-50 border border-green-300 text-green-700 px-4 py-3 rounded-xl text-sm">{success}</div>}
-        {error && <div className="bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-xl text-sm">{error}</div>}
+        {success && (
+          <div className="flex items-center gap-2 bg-green-50 border border-green-300 text-green-700 px-4 py-3 rounded-xl text-sm">
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {success}
+          </div>
+        )}
+        {error && (
+          <div className="flex items-center gap-2 bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-xl text-sm">
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            {error}
+          </div>
+        )}
 
-        {/* All Complaints Table */}
-        <div className="rounded-xl shadow-sm" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
-          <div className="flex flex-wrap items-center justify-between gap-4 px-5 pt-5 pb-3">
-            <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>All Complaints</h2>
+        {/* ═══ All Complaints ═══════════════════════════════════ */}
+        <div
+          className="rounded-xl shadow-sm"
+          style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
+        >
+          {/* Header with title, search, sort, filters */}
+          <div className="px-5 pt-5 pb-4 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                All Complaints
+                <span className="text-sm font-normal ml-2" style={{ color: "var(--text-muted)" }}>
+                  {visible.length} of {complaints.length}
+                </span>
+              </h2>
+
+              <div className="flex items-center gap-3">
+                {/* Search */}
+                <div className="relative">
+                  <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search complaints…"
+                    className="text-sm py-2 pl-9 pr-3 rounded-lg w-56 outline-none focus:ring-2 focus:ring-[#0088D1]/30 transition"
+                    style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                  />
+                </div>
+
+                {/* Sort */}
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="text-sm py-2 px-3 rounded-lg outline-none cursor-pointer focus:ring-2 focus:ring-[#0088D1]/30 transition"
+                  style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                >
+                  <option value="newest">Newest first</option>
+                  <option value="oldest">Oldest first</option>
+                  <option value="priority">Priority (High → Low)</option>
+                  <option value="status">Status (A → Z)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Status filter pills */}
             <div className="flex gap-2 flex-wrap">
-              {["ALL", "PENDING", "APPROVED", "REJECTED", "RESOLVED"].map((f) => (
+              {["ALL", "PENDING", "APPROVED", "ASSIGNED", "REJECTED", "RESOLVED"].map((f) => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
@@ -281,54 +455,37 @@ function AdminPanel() {
             </div>
           </div>
 
-          {loading ? (
-            <p className="text-sm px-5 pb-5" style={{ color: "var(--text-muted)" }}>Loading…</p>
-          ) : visible.length === 0 ? (
-            <p className="text-sm px-5 pb-5" style={{ color: "var(--text-muted)" }}>No complaints in this category.</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead>
-                  <tr style={{ background: "var(--table-header-bg)", borderBottom: "1px solid var(--border)" }}>
-                    {["#", "Title", "Student", "Mentor", "Issue Type", "Location", "Priority", "Status", "Date", "Action"].map((h) => (
-                      <th key={h} className="py-2.5 px-3 text-[11px] font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {visible.map((c) => (
-                    <tr key={c.id} className="align-middle" style={{ borderBottom: "1px solid var(--border)" }}>
-                      <td className="py-2.5 px-3" style={{ color: "var(--text-muted)" }}>{c.id}</td>
-                      <td className="py-2.5 px-3 max-w-[180px]">
-                        <p className="font-medium" style={{ color: "var(--text-primary)" }}>{c.title}</p>
-                        <p className="text-xs mt-0.5 truncate" style={{ color: "var(--text-muted)" }}>{c.description}</p>
-                      </td>
-                      <td className="py-2.5 px-3" style={{ color: "var(--text-secondary)" }}>{c.studentName}</td>
-                      <td className="py-2.5 px-3" style={{ color: "var(--text-secondary)" }}>{c.mentorName || "—"}</td>
-                      <td className="py-2.5 px-3" style={{ color: "var(--text-secondary)" }}>{c.issueType || c.category}</td>
-                      <td className="py-2.5 px-3 whitespace-nowrap text-xs" style={{ color: "var(--text-secondary)" }}>
-                        {c.building ? `${c.building}, ${c.floorNumber} Fl, Rm ${c.roomNumber}` : "—"}
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap ${priorityStyles[c.priority]}`}>{c.priority}</span>
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap ${statusStyles[c.status]}`}>{c.status}</span>
-                      </td>
-                      <td className="py-2.5 px-3 whitespace-nowrap text-xs" style={{ color: "var(--text-muted)" }}>{new Date(c.createdAt).toLocaleDateString()}</td>
-                      <td className="py-2.5 px-3 whitespace-nowrap">
-                        {c.status === "APPROVED" ? (
-                          <button onClick={() => resolve(c.id)} disabled={actionId === c.id} className="px-2.5 py-1 bg-green-600 text-white text-[11px] font-semibold rounded hover:bg-green-700 transition disabled:opacity-50 cursor-pointer">Resolve</button>
-                        ) : (
-                          <span className="text-xs italic" style={{ color: "var(--text-muted)" }}>{c.status === "RESOLVED" ? "Closed" : "—"}</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          {/* Complaint rows */}
+          <div className="px-5 pb-5">
+            {loading ? (
+              <div className="flex items-center justify-center py-12 gap-3" style={{ color: "var(--text-muted)" }}>
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                <span className="text-sm">Loading complaints…</span>
+              </div>
+            ) : visible.length === 0 ? (
+              <div className="text-center py-12">
+                <svg className="w-12 h-12 mx-auto mb-3" style={{ color: "var(--text-muted)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+                  {search ? `No complaints matching "${search}"` : "No complaints in this category."}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {visible.map((c) => (
+                  <ComplaintRow
+                    key={c.id}
+                    complaint={c}
+                    onClick={() => setSelectedComplaint(c)}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* System Activity */}
@@ -363,6 +520,19 @@ function AdminPanel() {
           )}
         </Card>
       </main>
+
+      {/* Complaint Detail Modal */}
+      {selectedComplaint && (
+        <ComplaintDetailModal
+          complaint={selectedComplaint}
+          onClose={() => setSelectedComplaint(null)}
+          role="ADMIN"
+          onAction={(id, action) => {
+            if (action === "resolve") resolve(id);
+          }}
+          acting={actionId === selectedComplaint.id}
+        />
+      )}
     </div>
   );
 }

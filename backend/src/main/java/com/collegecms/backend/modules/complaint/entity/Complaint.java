@@ -42,7 +42,7 @@ public class Complaint {
     @Column(nullable = false)
     private String roomNumber;
 
-    /** When the problem started (reported by the student) */
+    /** When the problem started (reported by the submitter) */
     private LocalDateTime problemStartedAt;
 
     @Enumerated(EnumType.STRING)
@@ -53,14 +53,26 @@ public class Complaint {
     @Column(nullable = false)
     private ComplaintStatus status;
 
+    /**
+     * The user who submitted the complaint.
+     * For student complaints this is the student; for mentor complaints
+     * this is the mentor who filed it.  Nullable = true so the existing
+     * NOT-NULL DB constraint can be relaxed via ALTER TABLE.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id", nullable = false)
+    @JoinColumn(name = "student_id")
     private User student;
 
-    /** Populated when a mentor approves or rejects the complaint. */
+    /** Populated when a mentor approves or rejects a student complaint. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "mentor_id")
     private User mentor;
+
+    /**
+     * Department a mentor complaint is auto-routed to.
+     * NULL for student complaints (they go through mentor approval instead).
+     */
+    private String assignedDepartment;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;

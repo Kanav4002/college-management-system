@@ -22,6 +22,11 @@ public class ComplaintResponse {
     private String studentName;
     private String studentEmail;
     private String mentorName;
+    private String assignedDepartment;
+    /** STUDENT or MENTOR — indicates who submitted the complaint */
+    private String submitterRole;
+    /** Group name of the submitter (if any). */
+    private String groupName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -38,11 +43,18 @@ public class ComplaintResponse {
         r.setProblemStartedAt(c.getProblemStartedAt());
         r.setPriority(c.getPriority().name());
         r.setStatus(c.getStatus().name());
-        r.setStudentName(c.getStudent().getName());
-        r.setStudentEmail(c.getStudent().getEmail());
+        if (c.getStudent() != null) {
+            r.setStudentName(c.getStudent().getName());
+            r.setStudentEmail(c.getStudent().getEmail());
+            r.setSubmitterRole(c.getStudent().getRole().name());
+            if (c.getStudent().getGroup() != null) {
+                r.setGroupName(c.getStudent().getGroup().getName());
+            }
+        }
         if (c.getMentor() != null) {
             r.setMentorName(c.getMentor().getName());
         }
+        r.setAssignedDepartment(c.getAssignedDepartment());
         r.setCreatedAt(c.getCreatedAt());
         r.setUpdatedAt(c.getUpdatedAt());
         return r;

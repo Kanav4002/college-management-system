@@ -3,6 +3,8 @@ package com.collegecms.backend.modules.auth.service;
 import com.collegecms.backend.common.security.JwtService;
 import com.collegecms.backend.common.email.EmailService;
 import com.collegecms.backend.modules.auth.dto.*;
+import com.collegecms.backend.modules.group.entity.StudentGroup;
+import com.collegecms.backend.modules.group.repository.StudentGroupRepository;
 import com.collegecms.backend.modules.user.entity.*;
 import com.collegecms.backend.modules.user.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -20,10 +22,39 @@ public class AuthService {
     private final StudentRepository studentRepository;
     private final MentorRepository mentorRepository;
     private final AdminRepository adminRepository;
+    private final StudentGroupRepository groupRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final EmailService emailService;
+
+    // ──────────────────────────────────────────────────────────────
+    // Helpers
+    // ──────────────────────────────────────────────────────────────
+
+    private LoginResponse buildLoginResponse(User user) {
+        String token = jwtService.generateToken(user.getEmail());
+
+        Long groupId = null;
+        String groupName = null;
+        if (user.getGroup() != null) {
+            groupId = user.getGroup().getId();
+            groupName = user.getGroup().getName();
+        }
+
+        return LoginResponse.builder()
+                .token(token)
+                .email(user.getEmail())
+                .role(user.getRole().name())
+                .name(user.getName())
+                .groupId(groupId)
+                .groupName(groupName)
+                .build();
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Register
+    // ──────────────────────────────────────────────────────────────
 
     @Transactional
     public String register(RegisterRequest request) {
@@ -37,6 +68,13 @@ public class AuthService {
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setRole(request.getRole());
+
+        // Assign group if provided (for STUDENT / MENTOR)
+        if (request.getGroupId() != null && request.getRole() != Role.ADMIN) {
+            StudentGroup group = groupRepository.findById(request.getGroupId())
+                    .orElseThrow(() -> new RuntimeException("Group not found"));
+            user.setGroup(group);
+        }
 
         User savedUser = userRepository.save(user);
 
@@ -71,6 +109,10 @@ public class AuthService {
         return "User registered successfully";
     }
 
+    // ──────────────────────────────────────────────────────────────
+    // Login
+    // ──────────────────────────────────────────────────────────────
+
     public LoginResponse login(LoginRequest request) {
 
         User user = userRepository.findByEmail(request.getEmail())
@@ -80,14 +122,12 @@ public class AuthService {
             throw new RuntimeException("Invalid password");
         }
 
-        String token = jwtService.generateToken(user.getEmail());
-
-        return new LoginResponse(
-                token,
-                user.getEmail(),
-                user.getRole().name()
-        );
+        return buildLoginResponse(user);
     }
+
+    // ──────────────────────────────────────────────────────────────
+    // Google OAuth
+    // ──────────────────────────────────────────────────────────────
 
     public LoginResponse loginWithGoogle(GoogleOAuthRequest request) {
 
@@ -123,14 +163,12 @@ public class AuthService {
                         "No account found for this Google email. Please register first."
                 ));
 
-        String token = jwtService.generateToken(user.getEmail());
-
-        return new LoginResponse(
-                token,
-                user.getEmail(),
-                user.getRole().name()
-        );
+        return buildLoginResponse(user);
     }
+
+    // ──────────────────────────────────────────────────────────────
+    // Password reset
+    // ──────────────────────────────────────────────────────────────
 
     public String forgotPassword(ForgotPasswordRequest request) {
 

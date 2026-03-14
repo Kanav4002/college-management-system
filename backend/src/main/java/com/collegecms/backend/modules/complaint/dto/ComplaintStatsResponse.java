@@ -13,6 +13,7 @@ public class ComplaintStatsResponse {
     private long total;
     private long pending;
     private long approved;
+    private long assigned;
     private long rejected;
     private long resolved;
 

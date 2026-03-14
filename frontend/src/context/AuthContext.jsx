@@ -17,8 +17,15 @@ export function AuthProvider({ children }) {
   }, [auth]);
 
   const login = (data) => {
-    // data = { token, email, role }
-    setAuth(data);
+    // data = { token, email, role, name, groupId, groupName }
+    setAuth({
+      token: data.token,
+      email: data.email,
+      role: data.role,
+      name: data.name,
+      groupId: data.groupId,
+      groupName: data.groupName,
+    });
   };
 
   const logout = () => {

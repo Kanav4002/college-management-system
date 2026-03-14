@@ -124,6 +124,54 @@ function Dashboard() {
               </span>
             </Link>
           )}
+
+          {/* Group Management link — Admin only */}
+          {role === "ADMIN" && (
+            <Link
+              to="/groups"
+              className="block rounded-2xl shadow-sm hover:shadow-md transition p-6"
+              style={{
+                background: "var(--bg-card)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              <h3 className="text-lg font-bold mb-2" style={{ color: "var(--accent)" }}>
+                Group Management
+              </h3>
+              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                Create and manage student groups, assign mentors, and organize batches.
+              </p>
+              <span className="inline-block mt-4 text-xs font-medium" style={{ color: "var(--accent)" }}>
+                Manage groups →
+              </span>
+            </Link>
+          )}
+
+          {/* Group info card — Students and Mentors */}
+          {auth?.groupName && (
+            <div
+              className="rounded-2xl shadow-sm p-6"
+              style={{
+                background: "var(--bg-card)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <svg className="w-5 h-5" style={{ color: "var(--accent)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <h3 className="text-lg font-bold" style={{ color: "var(--accent)" }}>
+                  My Group
+                </h3>
+              </div>
+              <p className="text-xl font-semibold mb-1" style={{ color: "var(--text-primary)" }}>
+                {auth.groupName}
+              </p>
+              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                {role === "STUDENT" ? "Your assigned class/batch group." : "The group you mentor."}
+              </p>
+            </div>
+          )}
         </div>
       </main>
     </div>

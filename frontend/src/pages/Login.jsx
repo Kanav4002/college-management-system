@@ -47,10 +47,16 @@ function Login() {
 
       <div className="relative w-full max-w-md">
         <div className="mx-auto rounded-3xl border border-white/60 bg-white/70 p-8 shadow-[0_18px_45px_rgba(15,23,42,0.25)] backdrop-blur-2xl">
-          {/* Icon */}
-          <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-2xl border border-white bg-white/70 shadow-sm">
-            <span className="text-lg">⮕</span>
-          </div>
+          {/* Navigate to Register */}
+          <Link
+            to="/register"
+            title="Go to Register"
+            className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-2xl border border-white bg-white/70 shadow-md hover:shadow-lg hover:bg-white/90 transition-all cursor-pointer"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+            </svg>
+          </Link>
 
           <h2 className="mb-2 text-center text-2xl font-semibold text-slate-900">
             Sign in with email

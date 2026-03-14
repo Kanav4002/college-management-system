@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import GoogleSignInButton from "../components/GoogleSignInButton";
@@ -17,10 +17,20 @@ function Register() {
     facultyId: "",
     // Admin field
     adminId: "",
+    // Group assignment
+    groupId: "",
   });
+  const [groups, setGroups] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Fetch available groups for the dropdown
+  useEffect(() => {
+    axios.get("/api/groups")
+      .then((res) => setGroups(res.data))
+      .catch(() => {}); // Silently fail if no groups
+  }, []);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -32,7 +42,11 @@ function Register() {
     setLoading(true);
 
     try {
-      await axios.post("/api/auth/register", formData);
+      const payload = {
+        ...formData,
+        groupId: formData.groupId ? Number(formData.groupId) : null,
+      };
+      await axios.post("/api/auth/register", payload);
       navigate("/login");
     } catch (err) {
       setError(
@@ -60,10 +74,16 @@ function Register() {
 
       <div className="relative w-full max-w-lg">
         <div className="mx-auto rounded-3xl border border-white/60 bg-white/70 p-8 shadow-[0_18px_45px_rgba(15,23,42,0.25)] backdrop-blur-2xl">
-          {/* Icon */}
-          <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-2xl border border-white bg-white/70 shadow-sm">
-            <span className="text-lg">✚</span>
-          </div>
+          {/* Navigate to Login */}
+          <Link
+            to="/login"
+            title="Go to Login"
+            className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-2xl border border-white bg-white/70 shadow-md hover:shadow-lg hover:bg-white/90 transition-all cursor-pointer"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-slate-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+            </svg>
+          </Link>
 
           <h2 className="mb-2 text-center text-2xl font-semibold text-slate-900">
             Create your account
@@ -214,6 +234,31 @@ function Register() {
                 </select>
               </div>
             </div>
+
+            {/* Group selection — for Students and Mentors */}
+            {(isStudent || isMentor) && groups.length > 0 && (
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-xs font-medium text-slate-600">
+                  Group (Class / Batch)
+                </label>
+                <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5 shadow-sm focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-300">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <select
+                    name="groupId"
+                    value={formData.groupId}
+                    onChange={handleChange}
+                    className="flex-1 border-none bg-transparent text-sm text-slate-900 outline-none"
+                  >
+                    <option value="">— Select Group (Optional) —</option>
+                    {groups.map((g) => (
+                      <option key={g.id} value={g.id}>{g.name}{g.mentorName ? ` (Mentor: ${g.mentorName})` : ""}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
 
             {/* Student-specific fields */}
             {isStudent && (
