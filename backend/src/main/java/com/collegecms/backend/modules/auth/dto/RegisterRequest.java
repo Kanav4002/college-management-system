@@ -14,13 +14,13 @@ public class RegisterRequest {
     // Student fields
     private String rollNo;
     private String branch;
-    // private String studentName;
 
     // Mentor field
     private String facultyId;
-    // private String mentorName;
 
     // Admin field
     private String adminId;
-    // private String adminName;
+
+    // Group assignment (optional — group ID the user should join)
+    private Long groupId;
 }

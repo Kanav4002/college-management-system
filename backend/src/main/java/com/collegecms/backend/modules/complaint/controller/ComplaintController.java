@@ -34,6 +34,20 @@ public class ComplaintController {
 
     // ── Mentor ────────────────────────────────────────────────────
 
+    /** Mentor submits their own complaint (auto-routed to department). */
+    @PostMapping("/mentor")
+    public ResponseEntity<ComplaintResponse> createMentorComplaint(
+            Authentication auth,
+            @RequestBody CreateComplaintRequest request) {
+        return ResponseEntity.ok(complaintService.createMentorComplaint(auth.getName(), request));
+    }
+
+    /** Mentor's own submitted complaints. */
+    @GetMapping("/mentor/my")
+    public ResponseEntity<List<ComplaintResponse>> getMentorOwnComplaints(Authentication auth) {
+        return ResponseEntity.ok(complaintService.getMentorOwnComplaints(auth.getName()));
+    }
+
     @GetMapping("/assigned")
     public ResponseEntity<List<ComplaintResponse>> getAssignedComplaints(Authentication auth) {
         return ResponseEntity.ok(complaintService.getAssignedComplaints(auth.getName()));

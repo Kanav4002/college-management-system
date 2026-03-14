@@ -55,7 +55,7 @@ export default function Navbar({ title, showBack = false }) {
               </Link>
             )}
 
-            {/* Profile cluster — avatar + email + role badge (single line) */}
+            {/* Profile cluster — avatar + email + role + group badge (single line) */}
             <div className="flex items-center gap-2.5">
               <div className="h-8 w-8 rounded-full bg-gray-400 dark:bg-gray-600 shrink-0" />
               <span
@@ -67,6 +67,14 @@ export default function Navbar({ title, showBack = false }) {
               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-[#0088D1] text-white shrink-0">
                 {roleLabel}
               </span>
+              {auth?.groupName && (
+                <span
+                  className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold shrink-0"
+                  style={{ background: "var(--bg-input)", color: "var(--text-secondary)", border: "1px solid var(--border)" }}
+                >
+                  {auth.groupName}
+                </span>
+              )}
             </div>
 
             {/* Dark / Light toggle */}

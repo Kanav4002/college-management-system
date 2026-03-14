@@ -26,6 +26,22 @@ public class ComplaintService {
     private final UserRepository userRepository;
 
     // ──────────────────────────────────────────────────────────────
+    // Department routing map (issue type → department)
+    // ──────────────────────────────────────────────────────────────
+
+    private static final Map<String, String> ISSUE_DEPARTMENT_MAP = Map.of(
+            "Cleaning",          "Janitorial Staff",
+            "IT / Network",      "IT Department",
+            "Electrical",        "Electrical Maintenance",
+            "Plumbing",          "Plumbing Maintenance",
+            "Furniture",         "Facilities Management",
+            "Civil / Structural","Civil Maintenance",
+            "Pest Control",      "Pest Control Services"
+    );
+
+    private static final String DEFAULT_DEPARTMENT = "General Administration";
+
+    // ──────────────────────────────────────────────────────────────
     // Internal helpers
     // ──────────────────────────────────────────────────────────────
 
@@ -34,26 +50,26 @@ public class ComplaintService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
-    /**
-     * Count complaints by status from an in-memory list (avoids N separate
-     * COUNT queries hitting the database).
-     */
     private Map<ComplaintStatus, Long> countByStatus(List<Complaint> complaints) {
         return complaints.stream()
                 .collect(Collectors.groupingBy(Complaint::getStatus, Collectors.counting()));
     }
 
-    // ──────────────────────────────────────────────────────────────
-    // Student APIs
-    // ──────────────────────────────────────────────────────────────
-
-    @Transactional
-    public ComplaintResponse createComplaint(String studentEmail, CreateComplaintRequest req) {
-        User student = getUser(studentEmail);
-        if (student.getRole() != Role.STUDENT) {
-            throw new RuntimeException("Only students can create complaints");
+    /**
+     * Resolves the department for a given issue type using the routing map.
+     */
+    private String resolveDepartment(String issueType) {
+        if (issueType == null || issueType.isEmpty()) {
+            return DEFAULT_DEPARTMENT;
         }
+        return ISSUE_DEPARTMENT_MAP.getOrDefault(issueType, DEFAULT_DEPARTMENT);
+    }
 
+    /**
+     * Builds a Complaint entity from the request DTO (shared between
+     * student and mentor submission).
+     */
+    private Complaint buildComplaint(CreateComplaintRequest req) {
         Complaint c = new Complaint();
         c.setTitle(req.getTitle());
         c.setDescription(req.getDescription());
@@ -64,9 +80,29 @@ public class ComplaintService {
         c.setRoomNumber(req.getRoomNumber());
         c.setProblemStartedAt(req.getProblemStartedAt());
         c.setPriority(req.getPriority());
+        c.setCreatedAt(LocalDateTime.now());
+        return c;
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Student APIs
+    // ──────────────────────────────────────────────────────────────
+
+    @Transactional
+    public ComplaintResponse createComplaint(String studentEmail, CreateComplaintRequest req) {
+        User student = getUser(studentEmail);
+        if (student.getRole() != Role.STUDENT) {
+            throw new RuntimeException("Only students can create complaints via this endpoint");
+        }
+
+        Complaint c = buildComplaint(req);
         c.setStatus(ComplaintStatus.PENDING);
         c.setStudent(student);
-        c.setCreatedAt(LocalDateTime.now());
+
+        // Auto-assign the group's mentor if the student belongs to a group
+        if (student.getGroup() != null && student.getGroup().getMentor() != null) {
+            c.setMentor(student.getGroup().getMentor());
+        }
 
         return ComplaintResponse.from(complaintRepository.save(c));
     }
@@ -84,9 +120,45 @@ public class ComplaintService {
     // ──────────────────────────────────────────────────────────────
 
     /**
-     * Returns:
-     *  1. All complaints this mentor has already acted on (approved / rejected).
-     *  2. All currently PENDING complaints not yet assigned to any mentor.
+     * Mentor submits a complaint → auto-routed to the appropriate department
+     * based on issue type. Status is set to ASSIGNED immediately.
+     */
+    @Transactional
+    public ComplaintResponse createMentorComplaint(String mentorEmail, CreateComplaintRequest req) {
+        User mentor = getUser(mentorEmail);
+        if (mentor.getRole() != Role.MENTOR) {
+            throw new RuntimeException("Only mentors can submit mentor complaints");
+        }
+
+        Complaint c = buildComplaint(req);
+        c.setStatus(ComplaintStatus.ASSIGNED);
+        c.setStudent(mentor);                                 // submitter
+        c.setMentor(mentor);                                  // also the reviewing mentor
+        c.setAssignedDepartment(resolveDepartment(req.getIssueType()));
+
+        return ComplaintResponse.from(complaintRepository.save(c));
+    }
+
+    /**
+     * Returns complaints the mentor has submitted themselves
+     * (i.e. where student_id = mentor's user id).
+     */
+    public List<ComplaintResponse> getMentorOwnComplaints(String mentorEmail) {
+        User mentor = getUser(mentorEmail);
+        if (mentor.getRole() != Role.MENTOR) {
+            throw new RuntimeException("Only mentors can access their own complaints");
+        }
+        return complaintRepository.findByStudentOrderByCreatedAtDesc(mentor)
+                .stream()
+                .map(ComplaintResponse::from)
+                .toList();
+    }
+
+    /**
+     * Returns complaints relevant to this mentor:
+     *  1. All complaints where this mentor is assigned (acted on or auto-assigned via group).
+     *  2. All currently PENDING complaints from students in the mentor's group.
+     *  3. If the mentor has no group, also includes all unassigned PENDING complaints.
      */
     public List<ComplaintResponse> getAssignedComplaints(String mentorEmail) {
         User mentor = getUser(mentorEmail);
@@ -94,6 +166,7 @@ public class ComplaintService {
             throw new RuntimeException("Only mentors can access assigned complaints");
         }
 
+        // 1. All complaints this mentor has already been assigned to
         List<Complaint> actedOn = new ArrayList<>(
                 complaintRepository.findByMentorOrderByCreatedAtDesc(mentor));
 
@@ -101,10 +174,24 @@ public class ComplaintService {
                 .map(Complaint::getId)
                 .collect(Collectors.toSet());
 
-        complaintRepository.findByStatusOrderByCreatedAtDesc(ComplaintStatus.PENDING)
-                .stream()
-                .filter(p -> !actedOnIds.contains(p.getId()))
-                .forEach(actedOn::add);
+        // 2. PENDING complaints — show group-relevant or all unassigned
+        List<Complaint> pending = complaintRepository.findByStatusOrderByCreatedAtDesc(ComplaintStatus.PENDING);
+        for (Complaint p : pending) {
+            if (actedOnIds.contains(p.getId())) continue;
+
+            // If mentor has a group, only show pending complaints from their group students
+            if (mentor.getGroup() != null) {
+                User submitter = p.getStudent();
+                if (submitter != null
+                        && submitter.getGroup() != null
+                        && submitter.getGroup().getId().equals(mentor.getGroup().getId())) {
+                    actedOn.add(p);
+                }
+            } else {
+                // No group assigned — show all pending (backward-compatible)
+                actedOn.add(p);
+            }
+        }
 
         return actedOn.stream().map(ComplaintResponse::from).toList();
     }
@@ -173,8 +260,8 @@ public class ComplaintService {
 
         Complaint c = complaintRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Complaint not found"));
-        if (c.getStatus() != ComplaintStatus.APPROVED) {
-            throw new RuntimeException("Only APPROVED complaints can be resolved");
+        if (c.getStatus() != ComplaintStatus.APPROVED && c.getStatus() != ComplaintStatus.ASSIGNED) {
+            throw new RuntimeException("Only APPROVED or ASSIGNED complaints can be resolved");
         }
 
         c.setStatus(ComplaintStatus.RESOLVED);
@@ -187,19 +274,14 @@ public class ComplaintService {
     // Stats  (optimised — one query per endpoint instead of 5+)
     // ──────────────────────────────────────────────────────────────
 
-    /**
-     * Student stats — fetch the student's complaints once and derive all
-     * counts + category breakdown in memory.
-     */
+    /** Student stats. */
     public ComplaintStatsResponse getStudentStats(String email) {
         User student = getUser(email);
         if (student.getRole() != Role.STUDENT) {
             throw new RuntimeException("Only students can access student stats");
         }
 
-        // Single DB query — @EntityGraph already joins student + mentor
         List<Complaint> complaints = complaintRepository.findByStudentOrderByCreatedAtDesc(student);
-
         Map<ComplaintStatus, Long> statusCounts = countByStatus(complaints);
 
         Map<String, Long> byCategory = complaints.stream()
@@ -209,16 +291,14 @@ public class ComplaintService {
                 .total(complaints.size())
                 .pending(statusCounts.getOrDefault(ComplaintStatus.PENDING, 0L))
                 .approved(statusCounts.getOrDefault(ComplaintStatus.APPROVED, 0L))
+                .assigned(statusCounts.getOrDefault(ComplaintStatus.ASSIGNED, 0L))
                 .rejected(statusCounts.getOrDefault(ComplaintStatus.REJECTED, 0L))
                 .resolved(statusCounts.getOrDefault(ComplaintStatus.RESOLVED, 0L))
                 .byCategory(byCategory)
                 .build();
     }
 
-    /**
-     * Mentor stats — one query for the mentor's own complaints, one query
-     * for the global pending pool.  Counts are derived in memory.
-     */
+    /** Mentor stats. */
     public ComplaintStatsResponse getMentorStats(String email) {
         User mentor = getUser(email);
         if (mentor.getRole() != Role.MENTOR) {
@@ -237,26 +317,21 @@ public class ComplaintService {
                 .total(acted.size() + pending)
                 .pending(pending)
                 .approved(statusCounts.getOrDefault(ComplaintStatus.APPROVED, 0L))
+                .assigned(statusCounts.getOrDefault(ComplaintStatus.ASSIGNED, 0L))
                 .rejected(statusCounts.getOrDefault(ComplaintStatus.REJECTED, 0L))
-                .resolved(0)
+                .resolved(statusCounts.getOrDefault(ComplaintStatus.RESOLVED, 0L))
                 .byCategory(byCategory)
                 .build();
     }
 
-    /**
-     * Admin stats — fetch all complaints once and compute every breakdown
-     * (status counts, category, issue type, building, avg resolution time)
-     * in memory.
-     */
+    /** Admin stats — system-wide. */
     public ComplaintStatsResponse getAdminStats(String email) {
         User admin = getUser(email);
         if (admin.getRole() != Role.ADMIN) {
             throw new RuntimeException("Only admins can access admin stats");
         }
 
-        // Single DB query — @EntityGraph joins student + mentor
         List<Complaint> all = complaintRepository.findAllByOrderByCreatedAtDesc();
-
         Map<ComplaintStatus, Long> statusCounts = countByStatus(all);
 
         Map<String, Long> byCategory = all.stream()
@@ -270,7 +345,6 @@ public class ComplaintService {
                 .filter(c -> c.getBuilding() != null && !c.getBuilding().isEmpty())
                 .collect(Collectors.groupingBy(Complaint::getBuilding, Collectors.counting()));
 
-        // Average resolution time (created → updatedAt for RESOLVED complaints)
         Double avgHours = null;
         List<Complaint> resolvedList = all.stream()
                 .filter(c -> c.getStatus() == ComplaintStatus.RESOLVED && c.getUpdatedAt() != null)
@@ -286,6 +360,7 @@ public class ComplaintService {
                 .total(all.size())
                 .pending(statusCounts.getOrDefault(ComplaintStatus.PENDING, 0L))
                 .approved(statusCounts.getOrDefault(ComplaintStatus.APPROVED, 0L))
+                .assigned(statusCounts.getOrDefault(ComplaintStatus.ASSIGNED, 0L))
                 .rejected(statusCounts.getOrDefault(ComplaintStatus.REJECTED, 0L))
                 .resolved(statusCounts.getOrDefault(ComplaintStatus.RESOLVED, 0L))
                 .byCategory(byCategory)

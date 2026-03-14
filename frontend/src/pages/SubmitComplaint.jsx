@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/Navbar";
 import api from "../api/api";
 
@@ -42,9 +43,23 @@ const FLOORS = ["Ground", "1st", "2nd", "3rd", "4th", "5th"];
 
 const PRIORITIES = ["LOW", "MEDIUM", "HIGH"];
 
+/* ── Routing preview (same as backend map) ─────────────────────── */
+const DEPT_MAP = {
+  "Cleaning":          "Janitorial Staff",
+  "IT / Network":      "IT Department",
+  "Electrical":        "Electrical Maintenance",
+  "Plumbing":          "Plumbing Maintenance",
+  "Furniture":         "Facilities Management",
+  "Civil / Structural":"Civil Maintenance",
+  "Pest Control":      "Pest Control Services",
+};
+
 /* ═══════════════════════════════════════════════════════════════ */
 function SubmitComplaint() {
   const navigate = useNavigate();
+  const { auth } = useAuth();
+  const isMentor = auth?.role === "MENTOR";
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -64,6 +79,8 @@ function SubmitComplaint() {
 
   const handleChange = (e) =>
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+
+  const resolvedDept = DEPT_MAP[form.issueType] || "General Administration";
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -86,8 +103,10 @@ function SubmitComplaint() {
           : null,
       };
 
-      await api.post("/complaints", payload);
-      navigate("/student");
+      // Mentors use /complaints/mentor, students use /complaints
+      const endpoint = isMentor ? "/complaints/mentor" : "/complaints";
+      await api.post(endpoint, payload);
+      navigate(isMentor ? "/mentor" : "/student");
     } catch (err) {
       setError(err.response?.data?.message || "Failed to submit complaint.");
     } finally {
@@ -110,9 +129,18 @@ function SubmitComplaint() {
           className="rounded-2xl shadow-lg w-full max-w-2xl p-8"
           style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
         >
-          <h1 className="text-2xl font-bold text-center mb-8" style={{ color: "var(--text-primary)" }}>
+          <h1 className="text-2xl font-bold text-center mb-2" style={{ color: "var(--text-primary)" }}>
             Submit a Complaint
           </h1>
+
+          {/* Mentor routing banner */}
+          {isMentor && (
+            <p className="text-center text-sm mb-6" style={{ color: "var(--text-secondary)" }}>
+              Your complaint will be <strong>auto-routed</strong> to the appropriate department for faster resolution.
+            </p>
+          )}
+
+          {!isMentor && <div className="mb-8" />}
 
           {error && (
             <div className="mb-6 bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-xl text-sm">
@@ -190,6 +218,18 @@ function SubmitComplaint() {
                   </select>
                 </div>
               </div>
+
+              {/* Live department routing preview (mentor only) */}
+              {isMentor && form.issueType && (
+                <div className="mt-4 flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm" style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)" }}>
+                  <svg className="w-4 h-4 shrink-0 text-[#0088D1]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span style={{ color: "var(--text-secondary)" }}>
+                    Will be routed to: <strong className="text-[#0088D1]">{resolvedDept}</strong>
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* ── Location Details ───────────────────────────────── */}
