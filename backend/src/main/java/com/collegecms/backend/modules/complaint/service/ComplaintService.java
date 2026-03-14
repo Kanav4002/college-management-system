@@ -1,10 +1,11 @@
 package com.collegecms.backend.modules.complaint.service;
 
-import com.collegecms.backend.modules.complaint.dto.ComplaintResponse;
-import com.collegecms.backend.modules.complaint.dto.ComplaintStatsResponse;
-import com.collegecms.backend.modules.complaint.dto.CreateComplaintRequest;
+import com.collegecms.backend.modules.complaint.dto.*;
 import com.collegecms.backend.modules.complaint.entity.Complaint;
+import com.collegecms.backend.modules.complaint.entity.ComplaintComment;
 import com.collegecms.backend.modules.complaint.entity.ComplaintStatus;
+import com.collegecms.backend.modules.complaint.entity.Priority;
+import com.collegecms.backend.modules.complaint.repository.ComplaintCommentRepository;
 import com.collegecms.backend.modules.complaint.repository.ComplaintRepository;
 import com.collegecms.backend.modules.user.entity.Role;
 import com.collegecms.backend.modules.user.entity.User;
@@ -23,6 +24,7 @@ import java.util.stream.Collectors;
 public class ComplaintService {
 
     private final ComplaintRepository complaintRepository;
+    private final ComplaintCommentRepository commentRepository;
     private final UserRepository userRepository;
 
     // ──────────────────────────────────────────────────────────────
@@ -271,6 +273,196 @@ public class ComplaintService {
     }
 
     // ──────────────────────────────────────────────────────────────
+    // Admin: Update complaint details
+    // ──────────────────────────────────────────────────────────────
+
+    @Transactional
+    public ComplaintResponse updateComplaint(Long id, String adminEmail, UpdateComplaintRequest req) {
+        User admin = getUser(adminEmail);
+        if (admin.getRole() != Role.ADMIN) {
+            throw new RuntimeException("Only admins can update complaint details");
+        }
+
+        Complaint c = complaintRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Complaint not found"));
+
+        // Apply only non-null fields
+        if (req.getTitle() != null && !req.getTitle().isBlank())
+            c.setTitle(req.getTitle());
+        if (req.getDescription() != null && !req.getDescription().isBlank())
+            c.setDescription(req.getDescription());
+        if (req.getCategory() != null && !req.getCategory().isBlank())
+            c.setCategory(req.getCategory());
+        if (req.getIssueType() != null && !req.getIssueType().isBlank())
+            c.setIssueType(req.getIssueType());
+        if (req.getBuilding() != null && !req.getBuilding().isBlank())
+            c.setBuilding(req.getBuilding());
+        if (req.getFloorNumber() != null && !req.getFloorNumber().isBlank())
+            c.setFloorNumber(req.getFloorNumber());
+        if (req.getRoomNumber() != null && !req.getRoomNumber().isBlank())
+            c.setRoomNumber(req.getRoomNumber());
+        if (req.getProblemStartedAt() != null)
+            c.setProblemStartedAt(req.getProblemStartedAt());
+        if (req.getPriority() != null && !req.getPriority().isBlank())
+            c.setPriority(Priority.valueOf(req.getPriority()));
+
+        c.setUpdatedAt(LocalDateTime.now());
+        return ComplaintResponse.from(complaintRepository.save(c));
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Admin: Delete complaint
+    // ──────────────────────────────────────────────────────────────
+
+    @Transactional
+    public void deleteComplaint(Long id, String adminEmail) {
+        User admin = getUser(adminEmail);
+        if (admin.getRole() != Role.ADMIN) {
+            throw new RuntimeException("Only admins can delete complaints");
+        }
+
+        Complaint c = complaintRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Complaint not found"));
+
+        // Delete associated comments first
+        commentRepository.findByComplaintIdOrderByCreatedAtAsc(id)
+                .forEach(commentRepository::delete);
+
+        complaintRepository.delete(c);
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Admin: Close complaint
+    // ──────────────────────────────────────────────────────────────
+
+    @Transactional
+    public ComplaintResponse closeComplaint(Long id, String adminEmail) {
+        User admin = getUser(adminEmail);
+        if (admin.getRole() != Role.ADMIN) {
+            throw new RuntimeException("Only admins can close complaints");
+        }
+
+        Complaint c = complaintRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Complaint not found"));
+
+        c.setStatus(ComplaintStatus.CLOSED);
+        c.setUpdatedAt(LocalDateTime.now());
+        return ComplaintResponse.from(complaintRepository.save(c));
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Admin: Assign complaint to department / authority
+    // ──────────────────────────────────────────────────────────────
+
+    @Transactional
+    public ComplaintResponse assignComplaint(Long id, String adminEmail, String department) {
+        User admin = getUser(adminEmail);
+        if (admin.getRole() != Role.ADMIN) {
+            throw new RuntimeException("Only admins can assign complaints");
+        }
+
+        Complaint c = complaintRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Complaint not found"));
+
+        c.setAssignedDepartment(department);
+        c.setStatus(ComplaintStatus.ASSIGNED);
+        c.setUpdatedAt(LocalDateTime.now());
+        return ComplaintResponse.from(complaintRepository.save(c));
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Admin: Create complaint (on behalf of anyone)
+    // ──────────────────────────────────────────────────────────────
+
+    @Transactional
+    public ComplaintResponse adminCreateComplaint(String adminEmail, CreateComplaintRequest req) {
+        User admin = getUser(adminEmail);
+        if (admin.getRole() != Role.ADMIN) {
+            throw new RuntimeException("Only admins can create complaints via this endpoint");
+        }
+
+        Complaint c = buildComplaint(req);
+        c.setStatus(ComplaintStatus.PENDING);
+        c.setStudent(admin); // Admin is the submitter
+        c.setUpdatedAt(LocalDateTime.now());
+
+        return ComplaintResponse.from(complaintRepository.save(c));
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Mentor: Escalate complaint to admin
+    // ──────────────────────────────────────────────────────────────
+
+    @Transactional
+    public ComplaintResponse escalateComplaint(Long id, String mentorEmail) {
+        User mentor = getUser(mentorEmail);
+        if (mentor.getRole() != Role.MENTOR) {
+            throw new RuntimeException("Only mentors can escalate complaints");
+        }
+
+        Complaint c = complaintRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Complaint not found"));
+
+        // Only PENDING or APPROVED complaints can be escalated
+        if (c.getStatus() != ComplaintStatus.PENDING && c.getStatus() != ComplaintStatus.APPROVED) {
+            throw new RuntimeException("Only PENDING or APPROVED complaints can be escalated");
+        }
+
+        c.setStatus(ComplaintStatus.APPROVED);
+        c.setMentor(mentor);
+        c.setAssignedDepartment(resolveDepartment(c.getIssueType()));
+        c.setUpdatedAt(LocalDateTime.now());
+
+        return ComplaintResponse.from(complaintRepository.save(c));
+    }
+
+    // ──────────────────────────────────────────────────────────────
+    // Comments — all roles can add comments, anyone involved can view
+    // ──────────────────────────────────────────────────────────────
+
+    @Transactional
+    public CommentResponse addComment(Long complaintId, String email, CommentRequest req) {
+        User user = getUser(email);
+
+        Complaint complaint = complaintRepository.findById(complaintId)
+                .orElseThrow(() -> new RuntimeException("Complaint not found"));
+
+        // Authorization: students can only comment on their own complaints
+        if (user.getRole() == Role.STUDENT && !complaint.getStudent().getId().equals(user.getId())) {
+            throw new RuntimeException("Students can only comment on their own complaints");
+        }
+
+        if (req.getContent() == null || req.getContent().isBlank()) {
+            throw new RuntimeException("Comment content cannot be empty");
+        }
+
+        ComplaintComment comment = new ComplaintComment();
+        comment.setComplaint(complaint);
+        comment.setAuthor(user);
+        comment.setContent(req.getContent().trim());
+        comment.setCreatedAt(LocalDateTime.now());
+
+        return CommentResponse.from(commentRepository.save(comment));
+    }
+
+    public List<CommentResponse> getComments(Long complaintId, String email) {
+        User user = getUser(email);
+
+        Complaint complaint = complaintRepository.findById(complaintId)
+                .orElseThrow(() -> new RuntimeException("Complaint not found"));
+
+        // Students can only view comments on their own complaints
+        if (user.getRole() == Role.STUDENT && !complaint.getStudent().getId().equals(user.getId())) {
+            throw new RuntimeException("Students can only view comments on their own complaints");
+        }
+
+        return commentRepository.findByComplaintIdOrderByCreatedAtAsc(complaintId)
+                .stream()
+                .map(CommentResponse::from)
+                .toList();
+    }
+
+    // ──────────────────────────────────────────────────────────────
     // Stats  (optimised — one query per endpoint instead of 5+)
     // ──────────────────────────────────────────────────────────────
 
@@ -294,6 +486,7 @@ public class ComplaintService {
                 .assigned(statusCounts.getOrDefault(ComplaintStatus.ASSIGNED, 0L))
                 .rejected(statusCounts.getOrDefault(ComplaintStatus.REJECTED, 0L))
                 .resolved(statusCounts.getOrDefault(ComplaintStatus.RESOLVED, 0L))
+                .closed(statusCounts.getOrDefault(ComplaintStatus.CLOSED, 0L))
                 .byCategory(byCategory)
                 .build();
     }
@@ -320,6 +513,7 @@ public class ComplaintService {
                 .assigned(statusCounts.getOrDefault(ComplaintStatus.ASSIGNED, 0L))
                 .rejected(statusCounts.getOrDefault(ComplaintStatus.REJECTED, 0L))
                 .resolved(statusCounts.getOrDefault(ComplaintStatus.RESOLVED, 0L))
+                .closed(statusCounts.getOrDefault(ComplaintStatus.CLOSED, 0L))
                 .byCategory(byCategory)
                 .build();
     }
@@ -363,6 +557,7 @@ public class ComplaintService {
                 .assigned(statusCounts.getOrDefault(ComplaintStatus.ASSIGNED, 0L))
                 .rejected(statusCounts.getOrDefault(ComplaintStatus.REJECTED, 0L))
                 .resolved(statusCounts.getOrDefault(ComplaintStatus.RESOLVED, 0L))
+                .closed(statusCounts.getOrDefault(ComplaintStatus.CLOSED, 0L))
                 .byCategory(byCategory)
                 .byIssueType(byIssueType)
                 .byBuilding(byBuilding)

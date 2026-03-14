@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/Navbar";
 import ComplaintDetailModal from "../components/ComplaintDetailModal";
@@ -11,6 +12,7 @@ const statusStyles = {
   REJECTED: "bg-red-100 text-red-700",
   ASSIGNED: "bg-indigo-100 text-indigo-700",
   RESOLVED: "bg-green-100 text-green-700",
+  CLOSED:   "bg-gray-200 text-gray-600",
 };
 
 const priorityStyles = {
@@ -248,18 +250,43 @@ function AdminPanel() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const resolve = async (id) => {
+  const handleAction = async (id, action, extra) => {
     setError(""); setSuccess(""); setActionId(id);
     try {
-      const { data } = await api.put(`/complaints/${id}/resolve`);
-      setComplaints((prev) => prev.map((c) => (c.id === id ? data : c)));
-      setSelectedComplaint((prev) => (prev?.id === id ? data : prev));
-      setSuccess(`Complaint #${id} resolved successfully.`);
+      let result;
+      switch (action) {
+        case "resolve":
+          result = await api.put(`/complaints/${id}/resolve`);
+          setComplaints((prev) => prev.map((c) => (c.id === id ? result.data : c)));
+          setSelectedComplaint((prev) => (prev?.id === id ? result.data : prev));
+          setSuccess(`Complaint #${id} resolved.`);
+          break;
+        case "close":
+          result = await api.put(`/complaints/${id}/close`);
+          setComplaints((prev) => prev.map((c) => (c.id === id ? result.data : c)));
+          setSelectedComplaint((prev) => (prev?.id === id ? result.data : prev));
+          setSuccess(`Complaint #${id} closed.`);
+          break;
+        case "assign":
+          result = await api.put(`/complaints/${id}/assign`, { department: extra?.department });
+          setComplaints((prev) => prev.map((c) => (c.id === id ? result.data : c)));
+          setSelectedComplaint((prev) => (prev?.id === id ? result.data : prev));
+          setSuccess(`Complaint #${id} assigned to ${extra?.department}.`);
+          break;
+        case "delete":
+          await api.delete(`/complaints/${id}`);
+          setComplaints((prev) => prev.filter((c) => c.id !== id));
+          setSelectedComplaint(null);
+          setSuccess(`Complaint #${id} deleted.`);
+          break;
+        default:
+          return;
+      }
       setTimeout(() => setSuccess(""), 4000);
       const { data: newStats } = await api.get("/complaints/stats/admin");
       setStats(newStats);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to resolve complaint.");
+      setError(err.response?.data?.message || `Failed to ${action} complaint.`);
     } finally { setActionId(null); }
   };
 
@@ -270,6 +297,7 @@ function AdminPanel() {
     ASSIGNED: complaints.filter((c) => c.status === "ASSIGNED").length,
     REJECTED: complaints.filter((c) => c.status === "REJECTED").length,
     RESOLVED: complaints.filter((c) => c.status === "RESOLVED").length,
+    CLOSED: complaints.filter((c) => c.status === "CLOSED").length,
   };
 
   /* ── Filtered, searched, sorted complaints ──────────────────── */
@@ -400,12 +428,20 @@ function AdminPanel() {
           {/* Header with title, search, sort, filters */}
           <div className="px-5 pt-5 pb-4 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
-                All Complaints
-                <span className="text-sm font-normal ml-2" style={{ color: "var(--text-muted)" }}>
-                  {visible.length} of {complaints.length}
-                </span>
-              </h2>
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                  All Complaints
+                  <span className="text-sm font-normal ml-2" style={{ color: "var(--text-muted)" }}>
+                    {visible.length} of {complaints.length}
+                  </span>
+                </h2>
+                <Link
+                  to="/submit-complaint"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0088D1] text-white text-xs font-semibold rounded-lg hover:opacity-90 transition"
+                >
+                  <span className="text-sm leading-none">+</span> New
+                </Link>
+              </div>
 
               <div className="flex items-center gap-3">
                 {/* Search */}
@@ -440,7 +476,7 @@ function AdminPanel() {
 
             {/* Status filter pills */}
             <div className="flex gap-2 flex-wrap">
-              {["ALL", "PENDING", "APPROVED", "ASSIGNED", "REJECTED", "RESOLVED"].map((f) => (
+              {["ALL", "PENDING", "APPROVED", "ASSIGNED", "REJECTED", "RESOLVED", "CLOSED"].map((f) => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
@@ -527,9 +563,7 @@ function AdminPanel() {
           complaint={selectedComplaint}
           onClose={() => setSelectedComplaint(null)}
           role="ADMIN"
-          onAction={(id, action) => {
-            if (action === "resolve") resolve(id);
-          }}
+          onAction={handleAction}
           acting={actionId === selectedComplaint.id}
         />
       )}

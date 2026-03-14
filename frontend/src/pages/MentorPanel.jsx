@@ -12,6 +12,7 @@ const statusStyles = {
   REJECTED: "bg-red-100 text-red-700",
   ASSIGNED: "bg-indigo-100 text-indigo-700",
   RESOLVED: "bg-green-100 text-green-700",
+  CLOSED:   "bg-gray-200 text-gray-600",
 };
 
 const priorityStyles = {
@@ -163,7 +164,8 @@ function MentorPanel() {
       const { data } = await api.put(`/complaints/${id}/${action}`);
       setComplaints((prev) => prev.map((c) => (c.id === id ? data : c)));
       setSelectedComplaint((prev) => (prev?.id === id ? data : prev));
-      setSuccess(`Complaint #${id} ${action === "approve" ? "approved" : "rejected"}.`);
+      const msg = action === "approve" ? "approved" : action === "reject" ? "rejected" : "escalated to admin";
+      setSuccess(`Complaint #${id} ${msg}.`);
       setTimeout(() => setSuccess(""), 4000);
       const { data: newStats } = await api.get("/complaints/stats/mentor");
       setStats(newStats);
@@ -478,7 +480,7 @@ function MentorPanel() {
           complaint={selectedComplaint}
           onClose={() => setSelectedComplaint(null)}
           role={modalRole}
-          onAction={modalRole === "MENTOR" ? act : undefined}
+          onAction={modalRole === "MENTOR" ? (id, action) => act(id, action) : undefined}
           acting={actionId === selectedComplaint.id}
         />
       )}
