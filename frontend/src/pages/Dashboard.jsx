@@ -21,10 +21,10 @@ const PANEL_CONFIG = {
     path: "/student",
   },
 
-  // ================= DUTY LEAVE PANEL CONFIG =================
+  // ================= LEAVE PANEL CONFIG =================
   DUTY_LEAVE: {
-    title: "Duty Leave Panel",
-    description: "Apply and track your duty leaves and approvals.",
+    title: "Leave Panel",
+    description: "Apply and track your leaves and approvals.",
     path: "/studentLeave",
   },
   // ==========================================================
@@ -137,7 +137,7 @@ function Dashboard() {
           {/* ================================================= */}
 
 
-          {/* ================= DUTY LEAVE PANEL ================= */}
+          {/* ================= LEAVE PANEL ================= */}
           {role === "STUDENT" && (
             <Link
               to="/studentLeave"
@@ -148,10 +148,10 @@ function Dashboard() {
               }}
             >
               <h3 className="text-lg font-bold mb-2" style={{ color: "var(--accent)" }}>
-                Duty Leave Panel
+                Leave Panel
               </h3>
               <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
-                Apply and track your duty leaves and approvals.
+                Apply and track your leaves and approvals.
               </p>
               <span className="inline-block mt-4 text-xs font-medium" style={{ color: "var(--accent)" }}>
                 Go to panel →

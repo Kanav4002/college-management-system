@@ -117,7 +117,7 @@ const DutyLeave = () => {
 
   return (
     <>
-      <Navbar title="Student Leave Dashboard" />
+      <Navbar title="Student Leave Dashboard" showBack={true} />
 
       <style>{`
         :root {
