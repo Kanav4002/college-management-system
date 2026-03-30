@@ -20,6 +20,14 @@ const PANEL_CONFIG = {
     description: "View courses, attendance, grades, and announcements.",
     path: "/student",
   },
+
+  // ================= DUTY LEAVE PANEL CONFIG =================
+  DUTY_LEAVE: {
+    title: "Duty Leave Panel",
+    description: "Apply and track your duty leaves and approvals.",
+    path: "/duty-leave",
+  },
+  // ==========================================================
 };
 
 const STATS_ENDPOINT = {
@@ -104,6 +112,8 @@ function Dashboard() {
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          
+          {/* ================= STUDENT PANEL ================= */}
           {panel && (
             <Link
               to={panel.path}
@@ -124,6 +134,32 @@ function Dashboard() {
               </span>
             </Link>
           )}
+          {/* ================================================= */}
+
+
+          {/* ================= DUTY LEAVE PANEL ================= */}
+          {role === "STUDENT" && (
+            <Link
+              to="/duty-leave"
+              className="block rounded-2xl shadow-sm hover:shadow-md transition p-6"
+              style={{
+                background: "var(--bg-card)",
+                border: "1px solid var(--border)",
+              }}
+            >
+              <h3 className="text-lg font-bold mb-2" style={{ color: "var(--accent)" }}>
+                Duty Leave Panel
+              </h3>
+              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                Apply and track your duty leaves and approvals.
+              </p>
+              <span className="inline-block mt-4 text-xs font-medium" style={{ color: "var(--accent)" }}>
+                Go to panel →
+              </span>
+            </Link>
+          )}
+          {/* ==================================================== */}
+
 
           {/* Group Management link — Admin only */}
           {role === "ADMIN" && (
