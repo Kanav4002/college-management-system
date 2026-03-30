@@ -1,18 +1,67 @@
 import React, { useEffect, useState } from "react";
+import Navbar from "../components/Navbar";
 
 const DutyLeave = () => {
-  const [yr, setYr] = useState(2023);
-  const [mo, setMo] = useState(4);
+  const user = "Muskan";
+
+  const today = new Date();
+  const [yr, setYr] = useState(today.getFullYear());
+  const [mo, setMo] = useState(today.getMonth());
+
   const [calendar, setCalendar] = useState([]);
-  const [priority, setPriority] = useState("Medium");
-  const [notify, setNotify] = useState("Yes");
-  const [checked, setChecked] = useState(true);
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+
+  const [leaveHistory, setLeaveHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+  const [leaveType, setLeaveType] = useState("Duty Leave");
+
+  const totalLeaves = 30;
 
   const DNS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
   const MNS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
-  const S = 19, E = 24;
+  /* -------- DATE LOGIC -------- */
+  const handleDateClick = (day) => {
+    const selected = new Date(yr, mo, day);
 
+    if (!startDate || (startDate && endDate)) {
+      setStartDate(selected);
+      setEndDate(null);
+    } else {
+      if (selected < startDate) {
+        setEndDate(startDate);
+        setStartDate(selected);
+      } else {
+        setEndDate(selected);
+      }
+    }
+  };
+
+  const isInRange = (d) => {
+    if (!startDate || !endDate) return false;
+    const date = new Date(yr, mo, d);
+    return date >= startDate && date <= endDate;
+  };
+
+  const isSelected = (d) => {
+    const date = new Date(yr, mo, d);
+    return (
+      (startDate && date.getTime() === startDate.getTime()) ||
+      (endDate && date.getTime() === endDate.getTime())
+    );
+  };
+
+  const calculateDays = () => {
+    if (!startDate || !endDate) return 0;
+    return (endDate - startDate) / (1000 * 60 * 60 * 24) + 1;
+  };
+
+  const usedLeaves = leaveHistory.reduce((acc, l) => acc + l.days, 0);
+  const remainingLeaves = totalLeaves - usedLeaves;
+
+  /* -------- CALENDAR -------- */
   const renderCal = () => {
     let cal = [];
 
@@ -21,18 +70,10 @@ const DutyLeave = () => {
     const first = new Date(yr, mo, 1).getDay();
     const tot = new Date(yr, mo + 1, 0).getDate();
 
-    for (let i = 0; i < first; i++) {
-      cal.push({ type: "empty" });
-    }
+    for (let i = 0; i < first; i++) cal.push({ type: "empty" });
 
     for (let d = 1; d <= tot; d++) {
-      let cls = "d";
-
-      if (mo === 4 && yr === 2023 && d >= S && d <= E) {
-        cls += (d === S || d === E) ? " se" : " rng";
-      }
-
-      cal.push({ type: "date", value: d, className: cls });
+      cal.push({ type: "date", value: d });
     }
 
     setCalendar(cal);
@@ -56,124 +97,287 @@ const DutyLeave = () => {
     } else setMo(mo + 1);
   };
 
-  const saveDraft = () => alert("Draft saved!");
+  /* -------- SUBMIT -------- */
   const submitForm = () => {
-    if (!checked) return alert("Please confirm first");
-    alert("Leave request submitted!");
+    const days = calculateDays();
+    if (days === 0) return alert("Select dates first");
+
+    const newLeave = {
+      id: Date.now(),
+      type: leaveType,
+      from: startDate.toDateString(),
+      to: endDate.toDateString(),
+      days
+    };
+
+    setLeaveHistory([...leaveHistory, newLeave]);
+    setStartDate(null);
+    setEndDate(null);
   };
 
   return (
     <>
-      {/* CSS INSIDE COMPONENT */}
+      <Navbar title="Student Leave Dashboard" />
+
       <style>{`
-        *{box-sizing:border-box;margin:0;padding:0}
-        body{font-family:Arial,sans-serif;background:#f4f6fb}
-        .page{max-width:900px;margin:0 auto;padding:2rem}
-        .top-bar{display:flex;justify-content:space-between;margin-bottom:1.5rem}
-        .avatar{width:44px;height:44px;border-radius:50%;background:#dbeafe;display:flex;align-items:center;justify-content:center;font-weight:700;color:#185FA5}
-
-        .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1rem}
-        .stat{background:#fff;border-radius:12px;padding:1rem;text-align:center}
-        .num{font-size:22px;font-weight:700;color:#185FA5}
-        .lbl{font-size:11px;color:#888}
-
-        .card{background:#fff;border-radius:12px;padding:1.5rem}
-        .grid2{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
-        .field{margin-bottom:1rem}
-        .label{font-size:12px;color:#666}
-
-        input,select,textarea{
-          width:100%;padding:8px;border-radius:8px;border:1px solid #ccc;background:#f9faff
+        :root {
+          --bg: #f1f5f9;
+          --card: white;
+          --text: #000;
         }
 
-        .date-row{display:flex;gap:5px}
-        .cal-wrap{background:#f9faff;padding:1rem;border-radius:12px}
-        .cgrid{display:grid;grid-template-columns:repeat(7,1fr);text-align:center}
-        .dn{font-size:10px;color:#aaa}
-        .d{padding:5px;border-radius:6px}
-        .d.rng{background:#dbeafe}
-        .d.se{background:#185FA5;color:#fff}
+        .dark {
+          --bg: #0f172a;
+          --card: #1e293b;
+          --text: #e2e8f0;
+        }
 
-        .tags{display:flex;gap:6px}
-        .tag{padding:5px 10px;border-radius:20px;border:1px solid #ccc;cursor:pointer}
-        .tag.on{background:#185FA5;color:#fff}
+        body {
+          background: var(--bg);
+          color: var(--text);
+          font-family: 'Inter', sans-serif;
+        }
 
-        .btn-row{display:flex;justify-content:flex-end;gap:10px;margin-top:1rem}
-        .btn{padding:10px 20px;border-radius:8px;border:none;cursor:pointer}
-        .btn-o{background:#fff;border:1px solid #ccc}
-        .btn-p{background:#185FA5;color:#fff}
+        .container {
+          width: 60%;
+          margin: auto;
+          margin-top: 20px;
+        }
+
+        .stats {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 20px;
+          margin-bottom: 20px;
+        }
+
+        .stat {
+          background: var(--card);
+          padding: 1.5rem;
+          border-radius: 12px;
+          border: 1px solid #e2e8f0;
+        }
+
+        .stat h2 {
+          color: #2563eb;
+        }
+
+        .card {
+          background: var(--card);
+          padding: 2rem;
+          border-radius: 16px;
+          border: 1px solid #e2e8f0;
+        }
+
+        .grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 30px;
+        }
+
+        input, textarea, select {
+          width: 100%;
+          padding: 12px;
+          margin-bottom: 12px;
+          border-radius: 10px;
+          border: 1px solid #cbd5f5;
+          background: transparent;
+          color: inherit;
+        }
+
+        textarea {
+          min-height: 100px;
+        }
+
+        .calendar {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+          gap: 6px;
+          margin-top: 10px;
+        }
+
+        .day {
+          padding: 10px;
+          border-radius: 8px;
+          cursor: pointer;
+          text-align: center;
+        }
+
+        .day:hover {
+          background: #e0e7ff;
+        }
+
+        .selected {
+          background: #2563eb;
+          color: white;
+        }
+
+        .range {
+          background: #bfdbfe;
+        }
+
+        .btn-row {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 20px;
+        }
+
+        .btn {
+          background: #2563eb;
+          color: white;
+          padding: 12px 20px;
+          border-radius: 10px;
+          border: none;
+          cursor: pointer;
+        }
+
+        .btn-outline {
+          padding: 10px 18px;
+          border-radius: 8px;
+          border: 1px solid #2563eb;
+          background: transparent;
+          color: #2563eb;
+          cursor: pointer;
+        }
+
+        .btn-outline:hover {
+          background: #2563eb;
+          color: white;
+        }
+
+        .history {
+          margin-top: 20px;
+          padding: 15px;
+          border-radius: 12px;
+          background: var(--card);
+          border: 1px solid #e2e8f0;
+        }
+
+        .history-item {
+          display: flex;
+          justify-content: space-between;
+          padding: 10px 0;
+          border-bottom: 1px solid #e2e8f0;
+        }
+
+        .history-item:last-child {
+          border-bottom: none;
+        }
+
+        .days {
+          color: #2563eb;
+          font-weight: 600;
+        }
+          /* FIX PLACEHOLDER VISIBILITY */
+        input::placeholder,
+        textarea::placeholder {
+        color: #64748b; /* darker gray for visibility */
+        opacity: 1;
+        }
+
+        /* DARK MODE PLACEHOLDER */
+        .dark input::placeholder,
+        .dark textarea::placeholder {
+         color: #94a3b8; /* lighter for dark bg */
+        }
       `}</style>
 
-      <div className="page">
-        <div className="top-bar">
-          <div>
-            <h2>Hi, Student</h2>
-            <p>Duty Leave Form</p>
-          </div>
-          <div className="avatar">ST</div>
-        </div>
-
+      <div className="container">
+        {/* STATS */}
         <div className="stats">
-          <div className="stat"><div className="num">5</div><div className="lbl">Days</div></div>
-          <div className="stat"><div className="num">08/30</div></div>
-          <div className="stat"><div className="num">22/30</div></div>
+          <div className="stat">
+            <h2>{calculateDays()}</h2>
+            <p>Selected Days</p>
+          </div>
+
+          <div className="stat">
+            <h2>{usedLeaves}/{totalLeaves}</h2>
+            <p>Used Leaves</p>
+          </div>
+
+          <div className="stat">
+            <h2>{remainingLeaves}/{totalLeaves}</h2>
+            <p>Remaining Leaves</p>
+          </div>
         </div>
 
+        {/* FORM */}
         <div className="card">
-          <div className="grid2">
+          <div className="grid">
             <div>
               <input placeholder="Name" />
               <input placeholder="Roll No" />
 
-              <select>
+              <select
+                value={leaveType}
+                onChange={(e) => setLeaveType(e.target.value)}
+              >
                 <option>Duty Leave</option>
+                <option>Medical Leave</option>
+                <option>Sick Leave</option>
               </select>
 
-              <div className="date-row">
-                <input defaultValue="19/05/2023"/>
-                <input defaultValue="24/05/2023"/>
-              </div>
-
               <textarea placeholder="Reason"></textarea>
-
-              <div className="tags">
-                {["Low","Medium","High"].map(p=>(
-                  <span key={p} className={`tag ${priority===p?"on":""}`} onClick={()=>setPriority(p)}>{p}</span>
-                ))}
-              </div>
             </div>
 
             <div>
-              <div className="cal-wrap">
-                <div>
-                  <button onClick={pm}>‹</button>
+              <div>
+                <button onClick={pm}>‹</button>
+                <span style={{ margin: "0 10px" }}>
                   {MNS[mo]} {yr}
-                  <button onClick={nm}>›</button>
-                </div>
-
-                <div className="cgrid">
-                  {calendar.map((item,i)=>{
-                    if(item.type==="dn") return <div key={i}>{item.value}</div>
-                    if(item.type==="empty") return <div key={i}></div>
-                    return <div key={i} className={item.className}>{item.value}</div>
-                  })}
-                </div>
+                </span>
+                <button onClick={nm}>›</button>
               </div>
 
-              <div className="tags">
-                {["Yes","No"].map(n=>(
-                  <span key={n} className={`tag ${notify===n?"on":""}`} onClick={()=>setNotify(n)}>{n}</span>
-                ))}
-              </div>
+              <div className="calendar">
+                {calendar.map((item, i) => {
+                  if (item.type === "dn") return <div key={i}>{item.value}</div>;
+                  if (item.type === "empty") return <div key={i}></div>;
 
-              <input type="checkbox" checked={checked} onChange={()=>setChecked(!checked)} />
+                  return (
+                    <div
+                      key={i}
+                      className={`day 
+                        ${isSelected(item.value) ? "selected" : ""}
+                        ${isInRange(item.value) ? "range" : ""}
+                      `}
+                      onClick={() => handleDateClick(item.value)}
+                    >
+                      {item.value}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
           <div className="btn-row">
-            <button className="btn btn-o" onClick={saveDraft}>Save</button>
-            <button className="btn btn-p" onClick={submitForm}>Submit</button>
+            <button className="btn" onClick={submitForm}>
+              Submit Leave
+            </button>
+
+            <button
+              className="btn-outline"
+              onClick={() => setShowHistory(!showHistory)}
+            >
+              {showHistory ? "Hide Leave History" : "View Leave History"}
+            </button>
           </div>
+
+          {showHistory && (
+            <div className="history">
+              <h3>Leave History</h3>
+
+              {leaveHistory.map((l) => (
+                <div key={l.id} className="history-item">
+                  <div>
+                    <strong>{l.type}</strong> | {l.from} → {l.to}
+                  </div>
+                  <span className="days">{l.days} days</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </>
