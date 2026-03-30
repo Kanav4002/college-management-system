@@ -11,6 +11,10 @@ import SubmitComplaint from "./pages/SubmitComplaint";
 import GroupManagement from "./pages/GroupManagement";
 import ProtectedRoute from "./components/ProtectedRoute";
 
+// ✅ FIXED: Capitalized component names (REQUIRED)
+import StudentLeave from "./pages/studentLeave";
+import EmployeeLeave from "./pages/employeeLeave";
+
 function App() {
   return (
     <Routes>
@@ -71,6 +75,28 @@ function App() {
           </ProtectedRoute>
         }
       />
+
+      {/* ================= NEW ROUTES ADDED ================= */}
+
+      <Route
+        path="/studentLeave"
+        element={
+          <ProtectedRoute allowedRoles={["STUDENT"]}>
+            <StudentLeave />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/employeeLeave"
+        element={
+          <ProtectedRoute allowedRoles={["MENTOR", "ADMIN"]}>
+            <EmployeeLeave />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* =================================================== */}
     </Routes>
   );
 }
