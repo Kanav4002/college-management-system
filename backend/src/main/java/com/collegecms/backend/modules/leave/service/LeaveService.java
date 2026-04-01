@@ -4,6 +4,7 @@ import com.collegecms.backend.modules.leave.dto.CreateLeaveRequest;
 import com.collegecms.backend.modules.leave.dto.LeaveResponse;
 import com.collegecms.backend.modules.leave.entity.Leave;
 import com.collegecms.backend.modules.leave.repository.LeaveRepository;
+import com.collegecms.backend.modules.user.entity.Role;
 import com.collegecms.backend.modules.user.entity.User;
 import com.collegecms.backend.modules.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -24,25 +25,30 @@ public class LeaveService {
         this.userRepository = userRepository;
     }
 
-    // ✅ Apply Leave
+    // ────────────────────────────────────────────────
+    // Helper
+    // ────────────────────────────────────────────────
+    private User getUser(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    // ────────────────────────────────────────────────
+    // Apply Leave (Student)
+    // ────────────────────────────────────────────────
     public LeaveResponse applyLeave(String email, CreateLeaveRequest request) {
 
-        // 🔥 STRICT USER FETCH (better error message)
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found for email: " + email));
+        User student = getUser(email);
 
-        // 🚨 DEBUG CHECK
-        if (user == null) {
-            throw new RuntimeException("User is NULL — cannot apply leave");
+        if (student.getRole() != Role.STUDENT) {
+            throw new RuntimeException("Only students can apply for leave");
         }
 
-        // ✅ Calculate days
         long days = ChronoUnit.DAYS.between(
                 request.getStartDate(),
                 request.getEndDate()
         ) + 1;
 
-        // 🚨 Prevent invalid dates
         if (days <= 0) {
             throw new RuntimeException("Invalid date range");
         }
@@ -56,35 +62,49 @@ public class LeaveService {
         leave.setDays((int) days);
 
         leave.setStatus("PENDING");
+        leave.setStudent(student);
 
-        // 🔥 CRITICAL FIX (ENSURE student is set)
-        leave.setStudent(user);
+        
+        if (student.getGroup() != null && student.getGroup().getMentor() != null) {
+            leave.setMentor(student.getGroup().getMentor());
+        } else {
+            // 🔥 FALLBACK → assign any mentor (so system always works)
+            User mentor = userRepository.findAll()
+                    .stream()
+                    .filter(u -> u.getRole() == Role.MENTOR)
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("No mentor available"));
 
-        // Optional: assign mentor later if needed
-        leave.setMentor(null);
+            leave.setMentor(mentor);
+        }
 
         leave.setAppliedAt(LocalDateTime.now());
 
         return mapToResponse(leaveRepository.save(leave));
     }
 
-    // ✅ Get My Leaves
+    // ────────────────────────────────────────────────
+    // Student: My Leaves
+    // ────────────────────────────────────────────────
     public List<LeaveResponse> getMyLeaves(String email) {
+        User student = getUser(email);
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        return leaveRepository.findByStudent(user)
+        return leaveRepository.findByStudent(student)
                 .stream()
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
 
-    // ✅ Mentor Panel
+    // ────────────────────────────────────────────────
+    // Mentor: Assigned Leaves
+    // ────────────────────────────────────────────────
     public List<LeaveResponse> getAssignedLeaves(String email) {
 
-        User mentor = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Mentor not found"));
+        User mentor = getUser(email);
+
+        if (mentor.getRole() != Role.MENTOR) {
+            throw new RuntimeException("Only mentors can access assigned leaves");
+        }
 
         return leaveRepository.findByMentor(mentor)
                 .stream()
@@ -92,14 +112,19 @@ public class LeaveService {
                 .collect(Collectors.toList());
     }
 
-    // ✅ Approve Leave
+    // ────────────────────────────────────────────────
+    // Approve
+    // ────────────────────────────────────────────────
     public LeaveResponse approveLeave(Long id, String email) {
+
+        User mentor = getUser(email);
+
+        if (mentor.getRole() != Role.MENTOR) {
+            throw new RuntimeException("Only mentors can approve leaves");
+        }
 
         Leave leave = leaveRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Leave not found"));
-
-        User mentor = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Mentor not found"));
 
         leave.setStatus("APPROVED");
         leave.setReviewedBy(mentor);
@@ -108,14 +133,19 @@ public class LeaveService {
         return mapToResponse(leaveRepository.save(leave));
     }
 
-    // ✅ Reject Leave
+    // ────────────────────────────────────────────────
+    // Reject
+    // ────────────────────────────────────────────────
     public LeaveResponse rejectLeave(Long id, String email) {
+
+        User mentor = getUser(email);
+
+        if (mentor.getRole() != Role.MENTOR) {
+            throw new RuntimeException("Only mentors can reject leaves");
+        }
 
         Leave leave = leaveRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Leave not found"));
-
-        User mentor = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Mentor not found"));
 
         leave.setStatus("REJECTED");
         leave.setReviewedBy(mentor);
@@ -124,20 +154,23 @@ public class LeaveService {
         return mapToResponse(leaveRepository.save(leave));
     }
 
-    // ✅ Mapper
+    // ────────────────────────────────────────────────
+    // Mapper
+    // ────────────────────────────────────────────────
     private LeaveResponse mapToResponse(Leave leave) {
         return new LeaveResponse(
-                leave.getId(),
-                leave.getLeaveType(),
-                leave.getReason(),
-                leave.getStartDate(),
-                leave.getEndDate(),
-                leave.getDays(),
-                leave.getStatus(),
-                leave.getStudent() != null ? leave.getStudent().getEmail() : null,
-                leave.getReviewedBy() != null ? leave.getReviewedBy().getEmail() : null,
-                leave.getAppliedAt(),
-                leave.getReviewedAt()
-        );
+    leave.getId(),
+    leave.getLeaveType(),
+    leave.getReason(),
+    leave.getStartDate(),
+    leave.getEndDate(),
+    leave.getDays(),
+    leave.getStatus(),
+    leave.getStudent() != null ? leave.getStudent().getEmail() : null,
+    leave.getStudent() != null ? leave.getStudent().getName() : null, // ✅ studentName
+    leave.getReviewedBy() != null ? leave.getReviewedBy().getEmail() : null,
+    leave.getAppliedAt(),
+    leave.getReviewedAt()
+);
     }
 }

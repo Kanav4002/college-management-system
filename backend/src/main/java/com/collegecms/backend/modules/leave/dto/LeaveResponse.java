@@ -16,16 +16,21 @@ public class LeaveResponse {
     private String status;
 
     private String studentEmail;
+    private String studentName;   // ✅ FIXED POSITION
     private String mentorEmail;
 
     private LocalDateTime appliedAt;
     private LocalDateTime reviewedAt;
 
-    // ✅ Constructor
+    // ✅ CORRECT CONSTRUCTOR ORDER
     public LeaveResponse(Long id, String leaveType, String reason,
                          LocalDate startDate, LocalDate endDate, int days,
-                         String status, String studentEmail, String mentorEmail,
-                         LocalDateTime appliedAt, LocalDateTime reviewedAt) {
+                         String status,
+                         String studentEmail,
+                         String studentName,   // ✅ HERE
+                         String mentorEmail,
+                         LocalDateTime appliedAt,
+                         LocalDateTime reviewedAt) {
 
         this.id = id;
         this.leaveType = leaveType;
@@ -35,6 +40,7 @@ public class LeaveResponse {
         this.days = days;
         this.status = status;
         this.studentEmail = studentEmail;
+        this.studentName = studentName;
         this.mentorEmail = mentorEmail;
         this.appliedAt = appliedAt;
         this.reviewedAt = reviewedAt;
@@ -49,6 +55,7 @@ public class LeaveResponse {
     public int getDays() { return days; }
     public String getStatus() { return status; }
     public String getStudentEmail() { return studentEmail; }
+    public String getStudentName() { return studentName; }
     public String getMentorEmail() { return mentorEmail; }
     public LocalDateTime getAppliedAt() { return appliedAt; }
     public LocalDateTime getReviewedAt() { return reviewedAt; }
