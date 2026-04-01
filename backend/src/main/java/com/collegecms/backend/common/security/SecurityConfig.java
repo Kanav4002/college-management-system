@@ -20,6 +20,7 @@ public class SecurityConfig {
 
         http
                 .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.disable())
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
@@ -50,19 +51,25 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/complaints/my").hasRole("STUDENT")
                         .requestMatchers("/api/complaints/stats/student").hasRole("STUDENT")
 
-                        // ── Shared authenticated endpoints ────────────────
-                        // POST /api/complaints (student create) — needs STUDENT role
+                        // ── Shared complaint endpoints ────────────────────
                         .requestMatchers(HttpMethod.POST, "/api/complaints").hasRole("STUDENT")
-                        // Comments — any authenticated user
                         .requestMatchers("/api/complaints/*/comments").authenticated()
-                        // Resolve & Update (admin checks in service layer)
                         .requestMatchers(HttpMethod.PUT, "/api/complaints/*/resolve").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/complaints/*").hasRole("ADMIN")
 
-                        // ── Group management — admin-only CRUD ────────────
+                        // ── Group management ──────────────────────────────
                         .requestMatchers(HttpMethod.POST, "/api/groups").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/groups/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/groups/**").hasRole("ADMIN")
+
+                        // ── Leave: Student endpoints ──────────────────────
+                        .requestMatchers(HttpMethod.POST, "/api/leaves").hasRole("STUDENT")
+                        .requestMatchers(HttpMethod.GET, "/api/leaves/my").hasRole("STUDENT")
+
+                        // ── Leave: Mentor endpoints ───────────────────────
+                        .requestMatchers(HttpMethod.GET, "/api/leaves/assigned").hasRole("MENTOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/leaves/*/approve").hasRole("MENTOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/leaves/*/reject").hasRole("MENTOR")
 
                         // ── Everything else requires authentication ───────
                         .anyRequest().authenticated()
