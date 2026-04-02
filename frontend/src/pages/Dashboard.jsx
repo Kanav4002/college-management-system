@@ -158,6 +158,27 @@ function Dashboard() {
               </span>
             </Link>
           )}
+
+          {role === "MENTOR" && (
+          <Link
+            to="/mentorLeave"
+            className="block rounded-2xl shadow-sm hover:shadow-md transition p-6"
+            style={{
+              background: "var(--bg-card)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <h3 className="text-lg font-bold mb-2" style={{ color: "var(--accent)" }}>
+              Leave Panel
+            </h3>
+            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+              Review student leave requests and approve or reject them.
+            </p>
+            <span className="inline-block mt-4 text-xs font-medium" style={{ color: "var(--accent)" }}>
+              Go to panel →
+            </span>
+          </Link>
+        )}
           {/* ==================================================== */}
 
 

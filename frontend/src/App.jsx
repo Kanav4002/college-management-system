@@ -10,10 +10,8 @@ import StudentPanel from "./pages/StudentPanel";
 import SubmitComplaint from "./pages/SubmitComplaint";
 import GroupManagement from "./pages/GroupManagement";
 import ProtectedRoute from "./components/ProtectedRoute";
-
-// ✅ FIXED: Capitalized component names (REQUIRED)
 import StudentLeave from "./pages/studentLeave";
-import EmployeeLeave from "./pages/employeeLeave";
+import MentorLeave from "./pages/mentorLeave";
 
 function App() {
   return (
@@ -88,10 +86,10 @@ function App() {
       />
 
       <Route
-        path="/employeeLeave"
+        path="/mentorLeave"
         element={
           <ProtectedRoute allowedRoles={["MENTOR", "ADMIN"]}>
-            <EmployeeLeave />
+            <MentorLeave />
           </ProtectedRoute>
         }
       />
