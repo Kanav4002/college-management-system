@@ -163,6 +163,23 @@ function Login() {
                       const res = await axios.post("/api/auth/oauth/google", {
                         accessToken: tokenResponse.access_token,
                       });
+
+                      // Backend returns either a real login (token + role)
+                      // or { needsRegistration, email, name, registrationToken }
+                      // when the Google account is new to our system.
+                      if (res.data?.needsRegistration) {
+                        navigate("/register", {
+                          state: {
+                            googleProfile: {
+                              email: res.data.email,
+                              name: res.data.name,
+                              registrationToken: res.data.registrationToken,
+                            },
+                          },
+                        });
+                        return;
+                      }
+
                       login(res.data);
                       navigate("/dashboard");
                     } catch (err) {

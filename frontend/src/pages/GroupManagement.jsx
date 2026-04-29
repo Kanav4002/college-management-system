@@ -29,7 +29,7 @@ function GroupModal({ group, mentors, onClose, onSave }) {
     setError("");
     setSaving(true);
     try {
-      const payload = { name, description, mentorId: mentorId ? Number(mentorId) : null };
+      const payload = { name, description, mentorId: mentorId || null };
       if (group) {
         await api.put(`/groups/${group.id}`, payload);
       } else {
@@ -213,7 +213,7 @@ function GroupRow({ group, isExpanded, onToggle, onEdit, onDelete, onAddMember }
         className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer group transition-colors duration-150 rounded-xl"
         style={{ background: "transparent" }}
       >
-        <span className="text-xs font-mono w-8 shrink-0" style={{ color: "var(--text-muted)" }}>#{group.id}</span>
+        <span className="text-xs font-mono shrink-0" style={{ color: "var(--text-muted)" }} title={group.id}>#{String(group.id).slice(-6)}</span>
         <span className="flex-1 font-medium text-sm truncate" style={{ color: "var(--text-primary)" }}>{group.name}</span>
         <span className="hidden sm:inline text-xs shrink-0" style={{ color: "var(--text-secondary)" }}>
           {group.mentorName || "No mentor"}

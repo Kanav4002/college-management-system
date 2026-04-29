@@ -1,23 +1,41 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../context/AuthContext";
 import GoogleSignInButton from "../components/GoogleSignInButton";
 
 function Register() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { login } = useAuth();
+
+  // If we arrived here from a Google sign-in that found no matching account,
+  // the Login page passes { email, name, registrationToken } via router state.
+  // We pre-fill + lock the email/name and skip the password field. As a
+  // fallback (handy for local manual QA) we also accept the same payload via
+  // ?googleEmail=&googleName=&googleTicket= URL params.
+  const initialGoogleProfile = (() => {
+    if (location.state?.googleProfile) return location.state.googleProfile;
+    const params = new URLSearchParams(location.search);
+    const ticket = params.get("googleTicket");
+    if (!ticket) return null;
+    return {
+      email: params.get("googleEmail") || "",
+      name: params.get("googleName") || "",
+      registrationToken: ticket,
+    };
+  })();
+
+  const [googleProfile, setGoogleProfile] = useState(initialGoogleProfile);
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
+    name: initialGoogleProfile?.name || "",
+    email: initialGoogleProfile?.email || "",
     password: "",
     role: "STUDENT",
-    // Student fields
     rollNo: "",
     branch: "",
-    // Mentor field
     facultyId: "",
-    // Admin field
     adminId: "",
-    // Group assignment
     groupId: "",
   });
   const [groups, setGroups] = useState([]);
@@ -25,11 +43,22 @@ function Register() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Fetch available groups for the dropdown
+  const isGoogleSignup = Boolean(googleProfile?.registrationToken);
+
   useEffect(() => {
     axios.get("/api/groups")
       .then((res) => setGroups(res.data))
-      .catch(() => {}); // Silently fail if no groups
+      .catch(() => {});
+  }, []);
+
+  // Clear the router state / URL params so a hard refresh doesn't keep the
+  // locked fields around forever — but only after we've captured them into
+  // our own state.
+  useEffect(() => {
+    if (initialGoogleProfile) {
+      window.history.replaceState({}, document.title, "/register");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleChange = (e) => {
@@ -44,8 +73,13 @@ function Register() {
     try {
       const payload = {
         ...formData,
-        groupId: formData.groupId ? Number(formData.groupId) : null,
+        groupId: formData.groupId || null,
       };
+      // Strip password for Google signups — backend will generate one.
+      if (isGoogleSignup) {
+        payload.registrationToken = googleProfile.registrationToken;
+        delete payload.password;
+      }
       await axios.post("/api/auth/register", payload);
       navigate("/login");
     } catch (err) {
@@ -98,7 +132,15 @@ function Register() {
             </div>
           )}
 
-          {hasGoogleOAuth && (
+          {isGoogleSignup && (
+            <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              Signed in with Google as <strong>{googleProfile.email}</strong>.
+              Pick your role and fill in the role-specific details to finish
+              creating your account.
+            </div>
+          )}
+
+          {hasGoogleOAuth && !isGoogleSignup && (
             <>
               <div className="mb-4 flex items-center gap-3 text-xs text-slate-400">
                 <div className="h-px flex-1 bg-slate-200" />
@@ -110,25 +152,35 @@ function Register() {
                   onLoginSuccess={async (tokenResponse) => {
                     try {
                       setError("");
-                      const profileRes = await axios.get(
-                        "https://www.googleapis.com/oauth2/v3/userinfo",
-                        {
-                          headers: {
-                            Authorization: `Bearer ${tokenResponse.access_token}`,
-                          },
-                        }
-                      );
+                      const res = await axios.post("/api/auth/oauth/google", {
+                        accessToken: tokenResponse.access_token,
+                      });
 
-                      const { email, name } = profileRes.data || {};
+                      // Existing account → just log them in.
+                      if (!res.data?.needsRegistration) {
+                        login(res.data);
+                        navigate("/dashboard");
+                        return;
+                      }
 
+                      // New account → pre-fill + lock name/email, switch
+                      // form into "Google signup" mode.
+                      setGoogleProfile({
+                        email: res.data.email,
+                        name: res.data.name,
+                        registrationToken: res.data.registrationToken,
+                      });
                       setFormData((prev) => ({
                         ...prev,
-                        email: email || prev.email,
-                        name: name || prev.name,
+                        email: res.data.email || prev.email,
+                        name: res.data.name || prev.name,
+                        password: "",
                       }));
                     } catch (err) {
                       setError(
-                        "Could not fetch Google profile. Please fill your details manually."
+                        err.response?.data?.message ||
+                          err.response?.data ||
+                          "Google sign-up failed. Please try again."
                       );
                     }
                   }}
@@ -143,10 +195,15 @@ function Register() {
           <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
             {/* Full name */}
             <div className="space-y-1.5 md:col-span-2">
-              <label className="text-xs font-medium text-slate-600">
-                Full Name
+              <label className="flex items-center justify-between text-xs font-medium text-slate-600">
+                <span>Full Name</span>
+                {isGoogleSignup && (
+                  <span className="text-[10px] uppercase tracking-wide text-emerald-600">
+                    From Google
+                  </span>
+                )}
               </label>
-              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5 shadow-sm focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-300">
+              <div className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 shadow-sm focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-300 ${isGoogleSignup ? "border-emerald-200 bg-emerald-50/60" : "border-slate-200 bg-white/80"}`}>
                 <span className="text-slate-400">👤</span>
                 <input
                   type="text"
@@ -154,18 +211,24 @@ function Register() {
                   value={formData.name}
                   onChange={handleChange}
                   required
+                  readOnly={isGoogleSignup}
                   placeholder="Name"
-                  className="flex-1 border-none bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                  className="flex-1 border-none bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 read-only:cursor-not-allowed"
                 />
               </div>
             </div>
 
             {/* Email */}
             <div className="space-y-1.5 md:col-span-2">
-              <label className="text-xs font-medium text-slate-600">
-                Email
+              <label className="flex items-center justify-between text-xs font-medium text-slate-600">
+                <span>Email</span>
+                {isGoogleSignup && (
+                  <span className="text-[10px] uppercase tracking-wide text-emerald-600">
+                    Verified by Google
+                  </span>
+                )}
               </label>
-              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5 shadow-sm focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-300">
+              <div className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 shadow-sm focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-300 ${isGoogleSignup ? "border-emerald-200 bg-emerald-50/60" : "border-slate-200 bg-white/80"}`}>
                 <span className="text-slate-400">✉️</span>
                 <input
                   type="email"
@@ -173,13 +236,15 @@ function Register() {
                   value={formData.email}
                   onChange={handleChange}
                   required
+                  readOnly={isGoogleSignup}
                   placeholder="Email"
-                  className="flex-1 border-none bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+                  className="flex-1 border-none bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 read-only:cursor-not-allowed"
                 />
               </div>
             </div>
 
-            {/* Password */}
+            {/* Password — hidden when continuing a Google signup */}
+            {!isGoogleSignup && (
             <div className="space-y-1.5 md:col-span-2">
               <label className="text-xs font-medium text-slate-600">
                 Password
@@ -214,6 +279,7 @@ function Register() {
                 </button>
               </div>
             </div>
+            )}
 
             {/* Role */}
             <div className="space-y-1.5 md:col-span-2">
@@ -349,7 +415,11 @@ function Register() {
                 disabled={loading}
                 className="mt-2 w-full rounded-xl bg-slate-900 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {loading ? "Creating account..." : "Create Account"}
+                {loading
+                  ? "Creating account..."
+                  : isGoogleSignup
+                    ? "Finish Google Signup"
+                    : "Create Account"}
               </button>
             </div>
           </form>

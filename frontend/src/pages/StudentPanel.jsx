@@ -71,7 +71,7 @@ function ComplaintRow({ complaint: c, onClick }) {
       }}
     >
       {/* ID */}
-      <span className="text-xs font-mono w-8 shrink-0" style={{ color: "var(--text-muted)" }}>#{c.id}</span>
+      <span className="text-xs font-mono shrink-0" style={{ color: "var(--text-muted)" }} title={c.id}>#{String(c.id).slice(-6)}</span>
 
       {/* Priority dot */}
       <span

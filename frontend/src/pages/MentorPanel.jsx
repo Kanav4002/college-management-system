@@ -68,7 +68,7 @@ function ComplaintRow({ complaint: c, onClick, showStudent = false }) {
         border: "1px solid var(--border)",
       }}
     >
-      <span className="text-xs font-mono w-8 shrink-0" style={{ color: "var(--text-muted)" }}>#{c.id}</span>
+      <span className="text-xs font-mono shrink-0" style={{ color: "var(--text-muted)" }} title={c.id}>#{String(c.id).slice(-6)}</span>
 
       <span
         className="w-2.5 h-2.5 rounded-full shrink-0"

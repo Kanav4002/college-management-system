@@ -159,8 +159,8 @@ export default function ComplaintDetailModal({ complaint: c, onClose, role = "ST
         >
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <span className="text-xs font-mono px-2 py-0.5 rounded-md" style={{ background: "var(--bg-input)", color: "var(--text-muted)" }}>
-                #{c.id}
+              <span className="text-xs font-mono px-2 py-0.5 rounded-md" style={{ background: "var(--bg-input)", color: "var(--text-muted)" }} title={c.id}>
+                #{String(c.id).slice(-6)}
               </span>
               <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold ${statusStyles[c.status]}`}>
                 {c.status}
@@ -543,7 +543,7 @@ export default function ComplaintDetailModal({ complaint: c, onClose, role = "ST
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="text-lg font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
-              Delete Complaint #{c.id}?
+              Delete Complaint #{String(c.id).slice(-6)}?
             </h3>
             <p className="text-sm mb-4" style={{ color: "var(--text-secondary)" }}>
               This action cannot be undone. All associated comments will also be deleted.

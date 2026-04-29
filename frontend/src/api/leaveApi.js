@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:8080/api/leaves";
+const BASE_URL = "/api/leaves";
 
 export const applyLeave = async (data, token) => {
   const res = await fetch(BASE_URL, {
