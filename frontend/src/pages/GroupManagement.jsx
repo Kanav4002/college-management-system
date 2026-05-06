@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
-import Navbar from "../components/Navbar";
+import AppShell from "../components/AppShell";
 import api from "../api/api";
 
 /* ── Helpers ─────────────────────────────────────────────────────── */
@@ -43,12 +43,11 @@ function GroupModal({ group, mentors, onClose, onSave }) {
     }
   };
 
-  const inputCls = "w-full px-4 py-2 text-sm rounded-lg";
-  const inputStyle = { background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" };
+  const inputCls = "w-full glass-input";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="rounded-2xl shadow-xl w-full max-w-md p-6 mx-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center glass-overlay">
+      <div className="glass-card w-full max-w-md mx-4">
         <h2 className="text-lg font-bold mb-4" style={{ color: "var(--text-primary)" }}>
           {group ? "Edit Group" : "Create New Group"}
         </h2>
@@ -60,15 +59,15 @@ function GroupModal({ group, mentors, onClose, onSave }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-primary)" }}>Group Name *</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required className={inputCls} style={inputStyle} placeholder="e.g. Computer Science Year 1" />
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required className={inputCls} placeholder="e.g. Computer Science Year 1" />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-primary)" }}>Description</label>
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className={inputCls} style={inputStyle} placeholder="Optional description..." />
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3} className={inputCls} placeholder="Optional description..." />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-primary)" }}>Assigned Mentor</label>
-            <select value={mentorId} onChange={(e) => setMentorId(e.target.value)} className={inputCls} style={inputStyle}>
+            <select value={mentorId} onChange={(e) => setMentorId(e.target.value)} className={inputCls}>
               <option value="">— No mentor —</option>
               {mentors.map((m) => (
                 <option key={m.id} value={m.id}>{m.name} ({m.email})</option>
@@ -77,8 +76,8 @@ function GroupModal({ group, mentors, onClose, onSave }) {
           </div>
 
           <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg cursor-pointer" style={{ background: "var(--bg-input)", color: "var(--text-secondary)" }}>Cancel</button>
-            <button type="submit" disabled={saving} className="px-4 py-2 text-sm font-semibold rounded-lg bg-[#0088D1] text-white cursor-pointer hover:opacity-90 transition disabled:opacity-50">
+            <button type="button" onClick={onClose} className="glass-btn">Cancel</button>
+            <button type="submit" disabled={saving} className="btn-primary">
               {saving ? "Saving..." : group ? "Update" : "Create"}
             </button>
           </div>
@@ -117,12 +116,11 @@ function AddMemberModal({ groupId, onClose, onSave }) {
     }
   };
 
-  const inputCls = "w-full px-4 py-2 text-sm rounded-lg";
-  const inputStyle = { background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" };
+  const inputCls = "w-full glass-input";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="rounded-2xl shadow-xl w-full max-w-md p-6 mx-4" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center glass-overlay">
+      <div className="glass-card w-full max-w-md mx-4">
         <h2 className="text-lg font-bold mb-4" style={{ color: "var(--text-primary)" }}>Add Member</h2>
 
         {error && (
@@ -132,7 +130,7 @@ function AddMemberModal({ groupId, onClose, onSave }) {
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1" style={{ color: "var(--text-primary)" }}>Role</label>
-            <select value={role} onChange={(e) => setRole(e.target.value)} className={inputCls} style={inputStyle}>
+            <select value={role} onChange={(e) => setRole(e.target.value)} className={inputCls}>
               <option value="STUDENT">Student</option>
               <option value="MENTOR">Mentor</option>
             </select>
@@ -142,7 +140,7 @@ function AddMemberModal({ groupId, onClose, onSave }) {
             {unassigned.length === 0 ? (
               <p className="text-sm italic" style={{ color: "var(--text-muted)" }}>No unassigned {role.toLowerCase()}s found.</p>
             ) : (
-              <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} className={inputCls} style={inputStyle}>
+              <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)} className={inputCls}>
                 <option value="">— Select —</option>
                 {unassigned.map((u) => (
                   <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
@@ -153,7 +151,7 @@ function AddMemberModal({ groupId, onClose, onSave }) {
 
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm rounded-lg cursor-pointer" style={{ background: "var(--bg-input)", color: "var(--text-secondary)" }}>Cancel</button>
-            <button onClick={handleAdd} disabled={saving || !selectedId} className="px-4 py-2 text-sm font-semibold rounded-lg bg-[#0088D1] text-white cursor-pointer hover:opacity-90 transition disabled:opacity-50">
+            <button onClick={handleAdd} disabled={saving || !selectedId} className="px-4 py-2 text-sm font-semibold rounded-lg bg-(--accent) text-white cursor-pointer hover:opacity-90 transition disabled:opacity-50">
               {saving ? "Adding..." : "Add Member"}
             </button>
           </div>
@@ -203,7 +201,7 @@ function GroupRow({ group, isExpanded, onToggle, onEdit, onDelete, onAddMember }
       className="rounded-xl transition-all duration-200"
       style={{
         background: "var(--bg-card)",
-        border: isExpanded ? "1px solid var(--accent, #0088D1)" : "1px solid var(--border)",
+        border: isExpanded ? "1px solid var(--accent)" : "1px solid var(--border)",
         boxShadow: isExpanded ? "0 4px 24px rgba(0,136,209,0.08)" : "none",
       }}
     >
@@ -252,7 +250,7 @@ function GroupRow({ group, isExpanded, onToggle, onEdit, onDelete, onAddMember }
               <h3 className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>Members</h3>
               <button
                 onClick={() => onAddMember(group.id)}
-                className="px-3 py-1 text-xs font-semibold rounded-lg bg-[#0088D1] text-white cursor-pointer hover:opacity-90 transition"
+                className="px-3 py-1 text-xs font-semibold rounded-lg bg-(--accent) text-white cursor-pointer hover:opacity-90 transition"
               >
                 + Add Member
               </button>
@@ -373,7 +371,7 @@ function GroupManagement() {
 
   const statCards = [
     {
-      label: "Total Groups", value: groups.length, iconBg: "#0088D1",
+      label: "Total Groups", value: groups.length, iconBg: "var(--accent)",
       icon: <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>,
     },
     {
@@ -391,10 +389,8 @@ function GroupManagement() {
   ];
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg-body)" }}>
-      <Navbar title="Group Management" showBack />
-
-      <main className="max-w-7xl mx-auto px-6 pb-12 pt-6 space-y-6">
+    <AppShell title="Group Management">
+      <main className="max-w-7xl mx-auto px-2 pb-6 pt-2 space-y-6">
         {/* Stat cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {statCards.map((card) => (
@@ -418,7 +414,7 @@ function GroupManagement() {
 
         {/* Header + search + create button */}
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="relative flex-1 min-w-[200px]">
+          <div className="relative flex-1 min-w-50">
             <input
               type="text"
               placeholder="Search groups..."
@@ -431,7 +427,7 @@ function GroupManagement() {
           </div>
           <button
             onClick={() => { setEditingGroup(null); setShowGroupModal(true); }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#0088D1] text-white text-sm font-semibold rounded-lg hover:opacity-90 transition shadow-sm cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-(--accent) text-white text-sm font-semibold rounded-lg hover:opacity-90 transition shadow-sm cursor-pointer"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
             New Group
@@ -485,7 +481,7 @@ function GroupManagement() {
           onSave={() => { setAddMemberGroupId(null); fetchData(); setSuccess("Member added."); setTimeout(() => setSuccess(""), 4000); }}
         />
       )}
-    </div>
+    </AppShell>
   );
 }
 

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import Navbar from "../components/Navbar";
+import AppShell from "../components/AppShell";
 import ComplaintDetailModal from "../components/ComplaintDetailModal";
 import api from "../api/api";
 
@@ -78,7 +78,7 @@ function BuildingBarChart({ data }) {
           <span className="w-32 text-xs font-medium text-right shrink-0 truncate" style={{ color: "var(--text-primary)" }} title={label}>{label}</span>
           <div className="flex-1 h-6 rounded-md overflow-hidden relative" style={{ background: "var(--chart-track)" }}>
             <div
-              className="h-full rounded-md bg-[#0088D1] transition-all flex items-center justify-end pr-2"
+              className="h-full rounded-md bg-(--accent) transition-all flex items-center justify-end pr-2"
               style={{ width: `${Math.max((count / max) * 100, 14)}%` }}
             >
               <span className="text-[11px] font-bold text-white">{count}</span>
@@ -127,11 +127,11 @@ function ActivityLineChart({ complaints }) {
           const y = h - padY - frac * (h - 2 * padY);
           return <line key={frac} x1={padX} y1={y} x2={w - padX} y2={y} stroke="var(--chart-track)" strokeWidth="1" />;
         })}
-        <polyline fill="none" stroke="#0088D1" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" points={points} />
+        <polyline fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" points={points} />
         {counts.map((v, i) => {
           const x = padX + i * stepX;
           const y = h - padY - ((v / max) * (h - 2 * padY));
-          return <circle key={i} cx={x} cy={y} r="4" fill="#0088D1" />;
+          return <circle key={i} cx={x} cy={y} r="4" fill="var(--accent)" />;
         })}
       </svg>
       <div className="flex justify-between text-xs px-2 -mt-1" style={{ color: "var(--text-muted)" }}>
@@ -141,16 +141,10 @@ function ActivityLineChart({ complaints }) {
   );
 }
 
-/* ── Card wrapper that respects theme ─────────────────────────── */
+/* ── Card wrapper with glassmorphism ─────────────────────── */
 function Card({ children, className = "" }) {
   return (
-    <div
-      className={`rounded-xl shadow-sm p-6 ${className}`}
-      style={{
-        background: "var(--bg-card)",
-        border: "1px solid var(--border)",
-      }}
-    >
+    <div className={`glass-card ${className}`}>
       {children}
     </div>
   );
@@ -161,11 +155,7 @@ function ComplaintRow({ complaint: c, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer rounded-xl transition-all duration-150 hover:shadow-md"
-      style={{
-        background: "var(--bg-card)",
-        border: "1px solid var(--border)",
-      }}
+      className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer glass-card transition-all duration-200 hover:scale-102"
     >
       {/* ID */}
       <span className="text-xs font-mono shrink-0" style={{ color: "var(--text-muted)" }} title={c.id}>#{String(c.id).slice(-6)}</span>
@@ -185,7 +175,7 @@ function ComplaintRow({ complaint: c, onClick }) {
       </span>
 
       {/* Submitter */}
-      <span className="hidden sm:inline text-xs shrink-0 max-w-[120px] truncate" style={{ color: "var(--text-secondary)" }}>
+      <span className="hidden sm:inline text-xs shrink-0 max-w-30 truncate" style={{ color: "var(--text-secondary)" }}>
         {c.studentName}
       </span>
 
@@ -350,8 +340,8 @@ function AdminPanel() {
   });
 
   const statCards = [
-    { label: "Total Complaints", value: stats?.total ?? "–", borderColor: "#0088D1",
-      icon: <svg className="w-5 h-5" style={{ color: "#0088D1" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> },
+    { label: "Total Complaints", value: stats?.total ?? "–", borderColor: "var(--accent)",
+      icon: <svg className="w-5 h-5" style={{ color: "var(--accent)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> },
     { label: "Pending", value: stats?.pending ?? "–", borderColor: "#eab308",
       icon: <svg className="w-5 h-5" style={{ color: "#eab308" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
     { label: "Under Review", value: stats?.approved ?? "–", borderColor: "#ef4444",
@@ -361,10 +351,8 @@ function AdminPanel() {
   ];
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg-body)" }}>
-      <Navbar title="Admin Analytics Dashboard" showBack />
-
-      <main className="max-w-7xl mx-auto px-6 pb-12 pt-6 space-y-6">
+    <AppShell title="Admin Analytics Dashboard">
+      <main className="max-w-7xl mx-auto px-2 pb-6 pt-2 space-y-6">
         {/* Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {statCards.map((card) => (
@@ -437,7 +425,7 @@ function AdminPanel() {
                 </h2>
                 <Link
                   to="/submit-complaint"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0088D1] text-white text-xs font-semibold rounded-lg hover:opacity-90 transition"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-(--accent) text-white text-xs font-semibold rounded-lg hover:opacity-90 transition"
                 >
                   <span className="text-sm leading-none">+</span> New
                 </Link>
@@ -454,7 +442,7 @@ function AdminPanel() {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search complaints…"
-                    className="text-sm py-2 pl-9 pr-3 rounded-lg w-56 outline-none focus:ring-2 focus:ring-[#0088D1]/30 transition"
+                    className="text-sm py-2 pl-9 pr-3 rounded-lg w-56 outline-none focus:ring-2 focus:ring-(--accent)/30 transition"
                     style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
                   />
                 </div>
@@ -463,7 +451,7 @@ function AdminPanel() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="text-sm py-2 px-3 rounded-lg outline-none cursor-pointer focus:ring-2 focus:ring-[#0088D1]/30 transition"
+                  className="text-sm py-2 px-3 rounded-lg outline-none cursor-pointer focus:ring-2 focus:ring-(--accent)/30 transition"
                   style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
                 >
                   <option value="newest">Newest first</option>
@@ -481,7 +469,7 @@ function AdminPanel() {
                   key={f}
                   onClick={() => setFilter(f)}
                   className={`px-3 py-1 text-xs rounded-full font-medium transition cursor-pointer ${
-                    filter === f ? "bg-[#0088D1] text-white" : ""
+                    filter === f ? "bg-(--accent) text-white" : ""
                   }`}
                   style={filter !== f ? { background: "var(--bg-input)", color: "var(--text-secondary)" } : {}}
                 >
@@ -567,7 +555,7 @@ function AdminPanel() {
           acting={actionId === selectedComplaint.id}
         />
       )}
-    </div>
+    </AppShell>
   );
 }
 

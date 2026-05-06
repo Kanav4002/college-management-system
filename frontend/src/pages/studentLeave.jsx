@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import Navbar from "../components/Navbar";
+import AppShell from "../components/AppShell";
 
 const DutyLeave = () => {
   const user = "Muskan";
@@ -116,24 +116,32 @@ const DutyLeave = () => {
   };
 
   return (
-    <>
-      <Navbar title="Student Leave Dashboard" showBack={true} />
+    <AppShell title="Student Leave Dashboard">
 
       <style>{`
         :root {
-          --bg: #f1f5f9;
-          --card: white;
-          --text: #000;
+          --bg: var(--bg-body);
+          --card: var(--bg-card);
+          --text: var(--text-primary);
+          --surface-border: var(--border);
+          --accent-color: var(--accent);
+          --accent-soft: var(--bg-elevated);
+          --accent-range: color-mix(in srgb, var(--accent) 18%, white);
+          --placeholder: var(--text-secondary);
         }
 
         .dark {
-          --bg: #0f172a;
-          --card: #1e293b;
-          --text: #e2e8f0;
+          --bg: var(--bg-body);
+          --card: var(--bg-card);
+          --text: var(--text-primary);
+          --surface-border: var(--border);
+          --accent-color: var(--accent);
+          --accent-soft: var(--bg-elevated);
+          --accent-range: color-mix(in srgb, var(--accent) 25%, black);
+          --placeholder: var(--text-secondary);
         }
 
-        body {
-          background: var(--bg);
+        .leave-root {
           color: var(--text);
           font-family: 'Inter', sans-serif;
         }
@@ -152,21 +160,27 @@ const DutyLeave = () => {
         }
 
         .stat {
-          background: var(--card);
+          background: color-mix(in srgb, var(--bg-card) 80%, transparent);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
           padding: 1.5rem;
           border-radius: 12px;
-          border: 1px solid #e2e8f0;
+          border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.1);
         }
 
         .stat h2 {
-          color: #2563eb;
+          color: var(--accent-color);
         }
 
         .card {
-          background: var(--card);
+          background: color-mix(in srgb, var(--bg-card) 82%, transparent);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
           padding: 2rem;
           border-radius: 16px;
-          border: 1px solid #e2e8f0;
+          border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.1);
         }
 
         .grid {
@@ -180,9 +194,21 @@ const DutyLeave = () => {
           padding: 12px;
           margin-bottom: 12px;
           border-radius: 10px;
-          border: 1px solid #cbd5f5;
-          background: transparent;
+          border: 1px solid color-mix(in srgb, var(--surface-border) 55%, transparent);
+          background: color-mix(in srgb, var(--card) 80%, transparent);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
           color: inherit;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+        }
+
+        input:focus, textarea:focus, select:focus {
+          outline: none;
+          border-color: var(--accent-color);
+          background: color-mix(in srgb, var(--card) 85%, transparent);
+          box-shadow: 
+            inset 0 1px 0 rgba(255, 255, 255, 0.08),
+            0 0 0 3px color-mix(in srgb, var(--accent-color) 20%, transparent);
         }
 
         textarea {
@@ -201,19 +227,26 @@ const DutyLeave = () => {
           border-radius: 8px;
           cursor: pointer;
           text-align: center;
+          background: color-mix(in srgb, var(--card) 60%, transparent);
+          border: 1px solid color-mix(in srgb, var(--surface-border) 35%, transparent);
+          transition: all 150ms ease;
         }
 
         .day:hover {
-          background: #e0e7ff;
+          background: color-mix(in srgb, var(--accent-soft) 70%, transparent);
+          transform: translateY(-1px);
         }
 
         .selected {
-          background: #2563eb;
+          background: var(--accent-color);
           color: white;
+          border-color: var(--accent-color);
+          box-shadow: 0 0 16px color-mix(in srgb, var(--accent-color) 40%, transparent);
         }
 
         .range {
-          background: #bfdbfe;
+          background: color-mix(in srgb, var(--accent-color) 15%, transparent);
+          border-color: color-mix(in srgb, var(--accent-color) 40%, transparent);
         }
 
         .btn-row {
@@ -223,25 +256,42 @@ const DutyLeave = () => {
         }
 
         .btn {
-          background: #2563eb;
+          background: var(--accent-color);
           color: white;
           padding: 12px 20px;
           border-radius: 10px;
           border: none;
           cursor: pointer;
+          font-weight: 600;
+          box-shadow: 0 0 24px color-mix(in srgb, var(--accent-color) 30%, transparent);
+          transition: all 200ms ease;
+        }
+
+        .btn:hover {
+          box-shadow: 0 0 32px color-mix(in srgb, var(--accent-color) 40%, transparent);
+          transform: translateY(-1px);
         }
 
         .btn-outline {
           padding: 10px 18px;
           border-radius: 8px;
-          border: 1px solid #2563eb;
-          background: transparent;
-          color: #2563eb;
+          border: 1px solid color-mix(in srgb, var(--accent-color) 50%, transparent);
+          background: color-mix(in srgb, var(--accent-color) 8%, transparent);
+          color: var(--accent-color);
           cursor: pointer;
+          font-weight: 600;
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          transition: all 150ms ease;
         }
 
         .btn-outline:hover {
-          background: #2563eb;
+          background: color-mix(in srgb, var(--accent-color) 15%, transparent);
+          border-color: color-mix(in srgb, var(--accent-color) 65%, transparent);
+        }
+
+        .btn-outline:hover {
+          background: var(--accent-color);
           color: white;
         }
 
@@ -250,14 +300,14 @@ const DutyLeave = () => {
           padding: 15px;
           border-radius: 12px;
           background: var(--card);
-          border: 1px solid #e2e8f0;
+          border: 1px solid var(--surface-border);
         }
 
         .history-item {
           display: flex;
           justify-content: space-between;
           padding: 10px 0;
-          border-bottom: 1px solid #e2e8f0;
+          border-bottom: 1px solid var(--surface-border);
         }
 
         .history-item:last-child {
@@ -265,24 +315,24 @@ const DutyLeave = () => {
         }
 
         .days {
-          color: #2563eb;
+          color: var(--accent-color);
           font-weight: 600;
         }
           /* FIX PLACEHOLDER VISIBILITY */
         input::placeholder,
         textarea::placeholder {
-        color: #64748b; /* darker gray for visibility */
+        color: var(--placeholder);
         opacity: 1;
         }
 
         /* DARK MODE PLACEHOLDER */
         .dark input::placeholder,
         .dark textarea::placeholder {
-         color: #94a3b8; /* lighter for dark bg */
+         color: var(--placeholder);
         }
       `}</style>
 
-      <div className="container">
+      <div className="leave-root container">
         {/* STATS */}
         <div className="stats">
           <div className="stat">
@@ -380,7 +430,7 @@ const DutyLeave = () => {
           )}
         </div>
       </div>
-    </>
+    </AppShell>
   );
 };
 

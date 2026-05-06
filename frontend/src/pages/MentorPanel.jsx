@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import Navbar from "../components/Navbar";
+import AppShell from "../components/AppShell";
 import ComplaintDetailModal from "../components/ComplaintDetailModal";
 import api from "../api/api";
 
@@ -40,7 +40,7 @@ function HorizontalBarChart({ data }) {
             <span className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{count}</span>
           </div>
           <div className="w-full h-3 rounded-full overflow-hidden" style={{ background: "var(--chart-track)" }}>
-            <div className="h-full rounded-full bg-[#0088D1] transition-all" style={{ width: `${(count / max) * 100}%` }} />
+            <div className="h-full rounded-full bg-(--accent) transition-all" style={{ width: `${(count / max) * 100}%` }} />
           </div>
         </div>
       ))}
@@ -48,10 +48,10 @@ function HorizontalBarChart({ data }) {
   );
 }
 
-/* ── Card helper ──────────────────────────────────────────────── */
+/* ── Card helper with glassmorphism ──────────────────────── */
 function Card({ children, className = "" }) {
   return (
-    <div className={`rounded-xl shadow-sm p-6 ${className}`} style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+    <div className={`glass-card ${className}`}>
       {children}
     </div>
   );
@@ -62,11 +62,7 @@ function ComplaintRow({ complaint: c, onClick, showStudent = false }) {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer rounded-xl transition-all duration-150 hover:shadow-md"
-      style={{
-        background: "var(--bg-card)",
-        border: "1px solid var(--border)",
-      }}
+      className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer glass-card transition-all duration-200 hover:scale-102"
     >
       <span className="text-xs font-mono shrink-0" style={{ color: "var(--text-muted)" }} title={c.id}>#{String(c.id).slice(-6)}</span>
 
@@ -81,7 +77,7 @@ function ComplaintRow({ complaint: c, onClick, showStudent = false }) {
       </span>
 
       {showStudent && (
-        <span className="hidden sm:inline text-xs shrink-0 max-w-[120px] truncate" style={{ color: "var(--text-secondary)" }}>
+        <span className="hidden sm:inline text-xs shrink-0 max-w-30 truncate" style={{ color: "var(--text-secondary)" }}>
           {c.studentName}
         </span>
       )}
@@ -243,7 +239,7 @@ function MentorPanel() {
   }, [myComplaints, myFilter, mySearch, mySort]);
 
   const statCards = [
-    { label: "Total Assigned", value: stats?.total ?? "–", iconBg: "#0088D1",
+    { label: "Total Assigned", value: stats?.total ?? "–", iconBg: "var(--accent)",
       icon: <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg> },
     { label: "Pending Review", value: stats?.pending ?? "–", iconBg: "#eab308",
       icon: <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
@@ -275,7 +271,7 @@ function MentorPanel() {
                 value={search}
                 onChange={(e) => onSearch(e.target.value)}
                 placeholder="Search complaints…"
-                className="text-sm py-2 pl-9 pr-3 rounded-lg w-56 outline-none focus:ring-2 focus:ring-[#0088D1]/30 transition"
+                className="text-sm py-2 pl-9 pr-3 rounded-lg w-56 outline-none focus:ring-2 focus:ring-(--accent)/30 transition"
                 style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
               />
             </div>
@@ -283,7 +279,7 @@ function MentorPanel() {
             <select
               value={sort}
               onChange={(e) => onSort(e.target.value)}
-              className="text-sm py-2 px-3 rounded-lg outline-none cursor-pointer focus:ring-2 focus:ring-[#0088D1]/30 transition"
+              className="text-sm py-2 px-3 rounded-lg outline-none cursor-pointer focus:ring-2 focus:ring-(--accent)/30 transition"
               style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
             >
               <option value="newest">Newest first</option>
@@ -299,7 +295,7 @@ function MentorPanel() {
             <button
               key={f}
               onClick={() => onFilter(f)}
-              className={`px-3 py-1 text-xs rounded-full font-medium transition cursor-pointer ${filter === f ? "bg-[#0088D1] text-white" : ""}`}
+              className={`px-3 py-1 text-xs rounded-full font-medium transition cursor-pointer ${filter === f ? "bg-(--accent) text-white" : ""}`}
               style={filter !== f ? { background: "var(--bg-input)", color: "var(--text-secondary)" } : {}}
             >
               {f} ({counts[f] ?? 0})
@@ -337,10 +333,8 @@ function MentorPanel() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg-body)" }}>
-      <Navbar title="Mentor Assignment Panel" showBack />
-
-      <main className="max-w-7xl mx-auto px-6 pb-12 pt-6 space-y-6">
+    <AppShell title="Mentor Assignment Panel">
+      <main className="max-w-7xl mx-auto px-2 pb-6 pt-2 space-y-6">
         {/* Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {statCards.map((card) => (
@@ -387,14 +381,14 @@ function MentorPanel() {
           <div className="flex gap-2">
             <button
               onClick={() => setTab("review")}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition cursor-pointer ${tab === "review" ? "bg-[#0088D1] text-white" : ""}`}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition cursor-pointer ${tab === "review" ? "bg-(--accent) text-white" : ""}`}
               style={tab !== "review" ? { background: "var(--bg-input)", color: "var(--text-secondary)" } : {}}
             >
               Student Complaints ({complaints.length})
             </button>
             <button
               onClick={() => setTab("my")}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition cursor-pointer ${tab === "my" ? "bg-[#0088D1] text-white" : ""}`}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition cursor-pointer ${tab === "my" ? "bg-(--accent) text-white" : ""}`}
               style={tab !== "my" ? { background: "var(--bg-input)", color: "var(--text-secondary)" } : {}}
             >
               My Complaints ({myComplaints.length})
@@ -402,7 +396,7 @@ function MentorPanel() {
           </div>
           <Link
             to="/submit-complaint"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#0088D1] text-white text-sm font-semibold rounded-lg hover:opacity-90 transition shadow-sm"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-(--accent) text-white text-sm font-semibold rounded-lg hover:opacity-90 transition shadow-sm"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -456,7 +450,7 @@ function MentorPanel() {
               {loading ? <LoadingState /> : visibleMy.length === 0 ? (
                 <EmptyState
                   searchTerm={mySearch}
-                  message={<>You haven&apos;t submitted any complaints yet. <Link to="/submit-complaint" className="text-[#0088D1] hover:underline">Submit one now →</Link></>}
+                  message={<>You haven&apos;t submitted any complaints yet. <Link to="/submit-complaint" className="text-(--accent) hover:underline">Submit one now →</Link></>}
                 />
               ) : (
                 <div className="space-y-2">
@@ -484,7 +478,7 @@ function MentorPanel() {
           acting={actionId === selectedComplaint.id}
         />
       )}
-    </div>
+    </AppShell>
   );
 }
 

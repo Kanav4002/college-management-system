@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import Navbar from "../components/Navbar";
+import AppShell from "../components/AppShell";
 import ComplaintDetailModal from "../components/ComplaintDetailModal";
 import api from "../api/api";
 
@@ -38,7 +38,7 @@ function CategoryBarChart({ data }) {
           <span className="w-28 text-sm font-medium text-right shrink-0" style={{ color: "var(--text-primary)" }}>{label}</span>
           <div className="flex-1 h-7 rounded-md overflow-hidden relative" style={{ background: "var(--chart-track)" }}>
             <div
-              className="h-full rounded-md bg-[#0088D1] transition-all flex items-center justify-end pr-2"
+              className="h-full rounded-md bg-(--accent) transition-all flex items-center justify-end pr-2"
               style={{ width: `${Math.max((count / max) * 100, 12)}%` }}
             >
               <span className="text-xs font-bold text-white">{count}</span>
@@ -50,10 +50,10 @@ function CategoryBarChart({ data }) {
   );
 }
 
-/* ── Card helper ──────────────────────────────────────────────── */
+/* ── Card helper with glassmorphism ──────────────────────── */
 function Card({ children, className = "" }) {
   return (
-    <div className={`rounded-xl shadow-sm p-6 ${className}`} style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+    <div className={`glass-card ${className}`}>
       {children}
     </div>
   );
@@ -64,11 +64,7 @@ function ComplaintRow({ complaint: c, onClick }) {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer rounded-xl transition-all duration-150 hover:shadow-md"
-      style={{
-        background: "var(--bg-card)",
-        border: "1px solid var(--border)",
-      }}
+      className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer glass-card transition-all duration-200 hover:scale-102"
     >
       {/* ID */}
       <span className="text-xs font-mono shrink-0" style={{ color: "var(--text-muted)" }} title={c.id}>#{String(c.id).slice(-6)}</span>
@@ -192,8 +188,8 @@ function StudentPanel() {
   const statCards = [
     {
       label: "Total Submitted", value: stats?.total ?? "–", subtitle: "Complaints submitted",
-      icon: <svg className="w-6 h-6" style={{ color: "#0088D1" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
-      valueColor: "#0088D1",
+      icon: <svg className="w-6 h-6" style={{ color: "var(--accent)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
+      valueColor: "var(--accent)",
     },
     {
       label: "Pending", value: stats?.pending ?? "–", subtitle: "Awaiting action",
@@ -208,10 +204,8 @@ function StudentPanel() {
   ];
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg-body)" }}>
-      <Navbar title="Student Personal Dashboard" showBack />
-
-      <main className="max-w-7xl mx-auto px-6 pb-12 pt-6 space-y-8">
+    <AppShell title="Student Personal Dashboard">
+      <main className="max-w-7xl mx-auto px-2 pb-6 pt-2 space-y-8">
         {/* Stat Cards — 3 cols */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
           {statCards.map((card) => (
@@ -232,7 +226,7 @@ function StudentPanel() {
             <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>Complaints by Category</h2>
             <Link
               to="/submit-complaint"
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[#0088D1] text-white text-sm font-semibold rounded-lg hover:opacity-90 transition"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-(--accent) text-white text-sm font-semibold rounded-lg hover:opacity-90 transition"
             >
               <span className="text-lg leading-none">+</span> New Complaint
             </Link>
@@ -276,7 +270,7 @@ function StudentPanel() {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search complaints…"
-                    className="text-sm py-2 pl-9 pr-3 rounded-lg w-56 outline-none focus:ring-2 focus:ring-[#0088D1]/30 transition"
+                    className="text-sm py-2 pl-9 pr-3 rounded-lg w-56 outline-none focus:ring-2 focus:ring-(--accent)/30 transition"
                     style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
                   />
                 </div>
@@ -285,7 +279,7 @@ function StudentPanel() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="text-sm py-2 px-3 rounded-lg outline-none cursor-pointer focus:ring-2 focus:ring-[#0088D1]/30 transition"
+                  className="text-sm py-2 px-3 rounded-lg outline-none cursor-pointer focus:ring-2 focus:ring-(--accent)/30 transition"
                   style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
                 >
                   <option value="newest">Newest first</option>
@@ -303,7 +297,7 @@ function StudentPanel() {
                   key={f}
                   onClick={() => setFilter(f)}
                   className={`px-3 py-1 text-xs rounded-full font-medium transition cursor-pointer ${
-                    filter === f ? "bg-[#0088D1] text-white" : ""
+                    filter === f ? "bg-(--accent) text-white" : ""
                   }`}
                   style={filter !== f ? { background: "var(--bg-input)", color: "var(--text-secondary)" } : {}}
                 >
@@ -355,7 +349,7 @@ function StudentPanel() {
           role="STUDENT"
         />
       )}
-    </div>
+    </AppShell>
   );
 }
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import Navbar from "../components/Navbar";
+import AppShell from "../components/AppShell";
 import api from "../api/api";
 
 const PANEL_CONFIG = {
@@ -78,10 +78,8 @@ function Dashboard() {
   })();
 
   return (
-    <div className="min-h-screen" style={{ background: "var(--bg-body)" }}>
-      <Navbar title="Dashboard" />
-
-      <main className="max-w-7xl mx-auto px-6 py-10 space-y-8">
+    <AppShell title="Dashboard">
+      <main className="max-w-7xl mx-auto px-2 py-3 space-y-8">
         <h2 className="text-xl font-semibold" style={{ color: "var(--text-primary)" }}>
           Welcome back!
         </h2>
@@ -91,19 +89,18 @@ function Dashboard() {
             {quickStats.map((s) => (
               <div
                 key={s.label}
-                className="rounded-2xl shadow-sm p-5"
+                className="stat-card"
                 style={{
-                  background: "var(--bg-card)",
-                  border: "1px solid var(--border)",
+                  background: "color-mix(in srgb, var(--bg-card) 80%, transparent)",
                 }}
               >
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-lg">{s.icon}</span>
-                  <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
-                    {s.label}
-                  </span>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-2xl">{s.icon}</span>
                 </div>
-                <p className="text-3xl font-extrabold" style={{ color: s.color }}>
+                <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--text-muted)" }}>
+                  {s.label}
+                </p>
+                <p className="text-3xl font-extrabold mt-2" style={{ color: s.color }}>
                   {s.value}
                 </p>
               </div>
@@ -117,11 +114,7 @@ function Dashboard() {
           {panel && (
             <Link
               to={panel.path}
-              className="block rounded-2xl shadow-sm hover:shadow-md transition p-6"
-              style={{
-                background: "var(--bg-card)",
-                border: "1px solid var(--border)",
-              }}
+              className="glass-card hover:scale-105 transform group"
             >
               <h3 className="text-lg font-bold mb-2" style={{ color: "var(--accent)" }}>
                 {panel.title}
@@ -141,11 +134,7 @@ function Dashboard() {
           {role === "STUDENT" && (
             <Link
               to="/studentLeave"
-              className="block rounded-2xl shadow-sm hover:shadow-md transition p-6"
-              style={{
-                background: "var(--bg-card)",
-                border: "1px solid var(--border)",
-              }}
+              className="glass-card hover:scale-105 transform group"
             >
               <h3 className="text-lg font-bold mb-2" style={{ color: "var(--accent)" }}>
                 Leave Panel
@@ -165,11 +154,7 @@ function Dashboard() {
           {role === "ADMIN" && (
             <Link
               to="/groups"
-              className="block rounded-2xl shadow-sm hover:shadow-md transition p-6"
-              style={{
-                background: "var(--bg-card)",
-                border: "1px solid var(--border)",
-              }}
+              className="glass-card hover:scale-105 transform group"
             >
               <h3 className="text-lg font-bold mb-2" style={{ color: "var(--accent)" }}>
                 Group Management
@@ -185,13 +170,7 @@ function Dashboard() {
 
           {/* Group info card — Students and Mentors */}
           {auth?.groupName && (
-            <div
-              className="rounded-2xl shadow-sm p-6"
-              style={{
-                background: "var(--bg-card)",
-                border: "1px solid var(--border)",
-              }}
-            >
+            <div className="glass-card">
               <div className="flex items-center gap-2 mb-2">
                 <svg className="w-5 h-5" style={{ color: "var(--accent)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -210,7 +189,7 @@ function Dashboard() {
           )}
         </div>
       </main>
-    </div>
+    </AppShell>
   );
 }
 
