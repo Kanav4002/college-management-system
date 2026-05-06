@@ -1,6 +1,6 @@
 import { useState } from "react";
-import axios from "axios";
 import { Link } from "react-router-dom";
+import api, { getApiErrorMessage } from "../api/api";
 
 function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -15,13 +15,11 @@ function ForgotPassword() {
     setLoading(true);
 
     try {
-      const res = await axios.post("/api/auth/forgot-password", { email });
+      const res = await api.post("/auth/forgot-password", { email });
       setMessage(res.data || "If an account exists, a reset link has been sent.");
     } catch (err) {
       setError(
-        err.response?.data?.message ||
-          err.response?.data ||
-          "Something went wrong. Please try again."
+        getApiErrorMessage(err, "Something went wrong. Please try again.")
       );
     } finally {
       setLoading(false);
@@ -104,4 +102,3 @@ function ForgotPassword() {
 }
 
 export default ForgotPassword;
-

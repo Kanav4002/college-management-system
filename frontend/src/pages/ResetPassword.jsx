@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
-import axios from "axios";
+import api, { getApiErrorMessage } from "../api/api";
 
 function useQuery() {
   return new URLSearchParams(useLocation().search);
@@ -34,7 +34,7 @@ function ResetPassword() {
 
     setLoading(true);
     try {
-      const res = await axios.post("/api/auth/reset-password", {
+      const res = await api.post("/auth/reset-password", {
         token,
         newPassword: password,
       });
@@ -42,9 +42,7 @@ function ResetPassword() {
       setTimeout(() => navigate("/login"), 1500);
     } catch (err) {
       setError(
-        err.response?.data?.message ||
-          err.response?.data ||
-          "Could not reset password. Please try again."
+        getApiErrorMessage(err, "Could not reset password. Please try again.")
       );
     } finally {
       setLoading(false);
@@ -145,4 +143,3 @@ function ResetPassword() {
 }
 
 export default ResetPassword;
-

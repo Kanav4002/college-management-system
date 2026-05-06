@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import GoogleSignInButton from "../components/GoogleSignInButton";
+import api, { getApiErrorMessage } from "../api/api";
 
 function Register() {
   const navigate = useNavigate();
@@ -46,7 +46,7 @@ function Register() {
   const isGoogleSignup = Boolean(googleProfile?.registrationToken);
 
   useEffect(() => {
-    axios.get("/api/groups")
+    api.get("/groups")
       .then((res) => setGroups(res.data))
       .catch(() => {});
   }, []);
@@ -80,13 +80,11 @@ function Register() {
         payload.registrationToken = googleProfile.registrationToken;
         delete payload.password;
       }
-      await axios.post("/api/auth/register", payload);
+      await api.post("/auth/register", payload);
       navigate("/login");
     } catch (err) {
       setError(
-        err.response?.data?.message ||
-          err.response?.data ||
-          "Registration failed. Please try again."
+        getApiErrorMessage(err, "Registration failed. Please try again.")
       );
     } finally {
       setLoading(false);
@@ -152,8 +150,13 @@ function Register() {
                   onLoginSuccess={async (tokenResponse) => {
                     try {
                       setError("");
-                      const res = await axios.post("/api/auth/oauth/google", {
-                        accessToken: tokenResponse.access_token,
+                      const accessToken = tokenResponse?.access_token;
+                      if (!accessToken) {
+                        throw new Error("Google did not return an access token.");
+                      }
+
+                      const res = await api.post("/auth/oauth/google", {
+                        accessToken,
                       });
 
                       // Existing account → just log them in.
@@ -178,9 +181,10 @@ function Register() {
                       }));
                     } catch (err) {
                       setError(
-                        err.response?.data?.message ||
-                          err.response?.data ||
+                        getApiErrorMessage(
+                          err,
                           "Google sign-up failed. Please try again."
+                        )
                       );
                     }
                   }}

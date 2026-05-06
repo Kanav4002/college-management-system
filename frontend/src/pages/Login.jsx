@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import GoogleSignInButton from "../components/GoogleSignInButton";
+import api, { getApiErrorMessage } from "../api/api";
 
 function Login() {
   const navigate = useNavigate();
@@ -23,15 +23,11 @@ function Login() {
     setLoading(true);
 
     try {
-      const res = await axios.post("/api/auth/login", formData);
+      const res = await api.post("/auth/login", formData);
       login(res.data);
       navigate("/dashboard");
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          err.response?.data ||
-          "Login failed. Please try again."
-      );
+      setError(getApiErrorMessage(err, "Login failed. Please try again."));
     } finally {
       setLoading(false);
     }
@@ -160,8 +156,13 @@ function Login() {
                   onLoginSuccess={async (tokenResponse) => {
                     try {
                       setError("");
-                      const res = await axios.post("/api/auth/oauth/google", {
-                        accessToken: tokenResponse.access_token,
+                      const accessToken = tokenResponse?.access_token;
+                      if (!accessToken) {
+                        throw new Error("Google did not return an access token.");
+                      }
+
+                      const res = await api.post("/auth/oauth/google", {
+                        accessToken,
                       });
 
                       // Backend returns either a real login (token + role)
@@ -184,9 +185,10 @@ function Login() {
                       navigate("/dashboard");
                     } catch (err) {
                       setError(
-                        err.response?.data?.message ||
-                          err.response?.data ||
+                        getApiErrorMessage(
+                          err,
                           "Google sign-in failed. Please try again."
+                        )
                       );
                     }
                   }}

@@ -1,50 +1,34 @@
-const BASE_URL = "/api/leaves";
+import api from "./api";
 
 export const applyLeave = async (data, token) => {
-  const res = await fetch(BASE_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(data),
+  const res = await api.post("/leaves", data, {
+    headers: { Authorization: `Bearer ${token}` },
   });
-
-  if (!res.ok) throw new Error("Failed to apply leave");
-
-  return res.json();
+  return res.data;
 };
 
 export const getMyLeaves = async (token) => {
-  const res = await fetch(`${BASE_URL}/my`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+  const res = await api.get("/leaves/my", {
+    headers: { Authorization: `Bearer ${token}` },
   });
-
-  return res.json();
+  return res.data;
 };
 
 export const getAssignedLeaves = async (token) => {
-  const res = await fetch(`${BASE_URL}/assigned`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+  const res = await api.get("/leaves/assigned", {
+    headers: { Authorization: `Bearer ${token}` },
   });
-
-  return res.json();
+  return res.data;
 };
 
 export const approveLeave = async (id, token) => {
-  await fetch(`${BASE_URL}/${id}/approve`, {
-    method: "PUT",
+  await api.put(`/leaves/${id}/approve`, null, {
     headers: { Authorization: `Bearer ${token}` },
   });
 };
 
 export const rejectLeave = async (id, token) => {
-  await fetch(`${BASE_URL}/${id}/reject`, {
-    method: "PUT",
+  await api.put(`/leaves/${id}/reject`, null, {
     headers: { Authorization: `Bearer ${token}` },
   });
 };
