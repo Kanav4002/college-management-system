@@ -44,7 +44,13 @@ async function register(input) {
     const ticket = verifyGoogleRegistrationTicket(input.registrationToken);
     verifiedEmail = ticket.email;
     verifiedName = ticket.name || input.name;
+    // Default to GOOGLE for ticket-based signups, but if the client
+    // also supplied a password we treat this as the user choosing to
+    // enable email/password login and create a LOCAL account instead.
     authProvider = 'GOOGLE';
+    if (input.password && String(input.password).length >= 6) {
+      authProvider = 'LOCAL';
+    }
   }
 
   const email = String(verifiedEmail || input.email).toLowerCase().trim();
@@ -187,7 +193,11 @@ async function forgotPassword({ email }) {
   const normalised = String(email).toLowerCase().trim();
   const user = await User.findOne({ email: normalised });
 
-  if (user && user.authProvider !== 'GOOGLE') {
+  // If a user exists, always create a password-reset token so they can
+  // set a local password — this supports users who originally signed up
+  // via Google and want to enable email/password login later. We still
+  // return a generic message to avoid leaking account existence.
+  if (user) {
     const token = crypto.randomBytes(32).toString('hex');
     await PasswordResetToken.create({
       token,
@@ -195,7 +205,9 @@ async function forgotPassword({ email }) {
       expiresAt: new Date(Date.now() + RESET_TOKEN_TTL_MS),
     });
     const resetUrl = `${env.FRONTEND_URL}/reset-password?token=${token}`;
-    await sendPasswordResetEmail({ to: user.email, resetUrl });
+    // Pass along whether this was a Google-backed account so email
+    // transports can customize messaging if desired.
+    await sendPasswordResetEmail({ to: user.email, resetUrl, isGoogle: user.authProvider === 'GOOGLE' });
   }
 
   return 'If an account with that email exists, a reset link has been sent.';

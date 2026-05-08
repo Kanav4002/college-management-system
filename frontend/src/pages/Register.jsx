@@ -75,11 +75,12 @@ function Register() {
         ...formData,
         groupId: formData.groupId || null,
       };
-      // Strip password for Google signups — backend will generate one.
-      if (isGoogleSignup) {
-        payload.registrationToken = googleProfile.registrationToken;
-        delete payload.password;
-      }
+          // When continuing a Google signup we include the registration token.
+          // If the user also supplies a password, we send it so the backend
+          // can create a LOCAL account (enabling email/password login).
+          if (isGoogleSignup) {
+            payload.registrationToken = googleProfile.registrationToken;
+          }
       await api.post("/auth/register", payload);
       navigate("/login");
     } catch (err) {
@@ -247,21 +248,24 @@ function Register() {
               </div>
             </div>
 
-            {/* Password — hidden when continuing a Google signup */}
-            {!isGoogleSignup && (
+            {/* Password — always show, but optional for Google signup */}
             <div className="space-y-1.5 md:col-span-2">
               <label className="text-xs font-medium text-slate-600">
                 Password
+                {isGoogleSignup && (
+                  <span className="ml-2 text-[11px] font-normal text-slate-500">
+                    (optional) — set to enable email/password login
+                  </span>
+                )}
               </label>
-              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white/80 px-3 py-2.5 shadow-sm focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-300">
+              <div className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 shadow-sm focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-300 ${isGoogleSignup ? 'border-emerald-200 bg-emerald-50/60' : 'border-slate-200 bg-white/80'}`}>
                 <span className="text-slate-400">🔒</span>
                 <input
                   type={showPassword ? "text" : "password"}
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  required
-                  placeholder="••••••••"
+                  placeholder={isGoogleSignup ? "Optional — set to enable email login" : "••••••••"}
                   className="flex-1 border-none bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
                 />
                 <button
@@ -283,7 +287,6 @@ function Register() {
                 </button>
               </div>
             </div>
-            )}
 
             {/* Role */}
             <div className="space-y-1.5 md:col-span-2">
