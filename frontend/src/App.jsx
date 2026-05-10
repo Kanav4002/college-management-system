@@ -9,6 +9,8 @@ import MentorPanel from "./pages/MentorPanel";
 import StudentPanel from "./pages/StudentPanel";
 import SubmitComplaint from "./pages/SubmitComplaint";
 import GroupManagement from "./pages/GroupManagement";
+import Announcements from "./pages/Announcements";
+import ManageAnnouncements from "./pages/ManageAnnouncements";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // ✅ FIXED: Capitalized component names (REQUIRED)
@@ -72,6 +74,22 @@ function App() {
         element={
           <ProtectedRoute allowedRoles={["ADMIN"]}>
             <GroupManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/announcements"
+        element={
+          <ProtectedRoute allowedRoles={["STUDENT", "MENTOR", "ADMIN"]}>
+            <Announcements />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manage-announcements"
+        element={
+          <ProtectedRoute allowedRoles={["ADMIN"]}>
+            <ManageAnnouncements />
           </ProtectedRoute>
         }
       />

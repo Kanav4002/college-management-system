@@ -15,6 +15,8 @@ const authRoutes      = require('./modules/auth/auth.routes');
 const groupRoutes     = require('./modules/groups/group.routes');
 const complaintRoutes = require('./modules/complaints/complaint.routes');
 const leaveRoutes     = require('./modules/leave/leave.routes');
+const announcementRoutes = require('./routes/announcementRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 const app = express();
 
@@ -36,6 +38,8 @@ app.use('/api/auth',       authRoutes);
 app.use('/api/groups',     groupRoutes);
 app.use('/api/complaints', complaintRoutes);
 app.use('/api/leaves',     leaveRoutes);
+app.use('/api/announcements', announcementRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // 404 + central error handler must come last.
 app.use(notFoundMiddleware);

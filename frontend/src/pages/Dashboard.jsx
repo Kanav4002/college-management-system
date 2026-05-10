@@ -127,6 +127,21 @@ function Dashboard() {
               </span>
             </Link>
           )}
+
+          <Link
+            to="/announcements"
+            className="glass-card hover:scale-105 transform group"
+          >
+            <h3 className="text-lg font-bold mb-2" style={{ color: "var(--accent)" }}>
+              Announcements
+            </h3>
+            <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+              Browse college announcements, events, and exam updates.
+            </p>
+            <span className="inline-block mt-4 text-xs font-medium" style={{ color: "var(--accent)" }}>
+              View announcements →
+            </span>
+          </Link>
           {/* ================================================= */}
 
 
@@ -151,6 +166,23 @@ function Dashboard() {
 
 
           {/* Group Management link — Admin only */}
+          {role === "ADMIN" && (
+            <Link
+              to="/manage-announcements"
+              className="glass-card hover:scale-105 transform group"
+            >
+              <h3 className="text-lg font-bold mb-2" style={{ color: "var(--accent)" }}>
+                Manage Announcements
+              </h3>
+              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                Create, edit, and publish announcements for students and mentors.
+              </p>
+              <span className="inline-block mt-4 text-xs font-medium" style={{ color: "var(--accent)" }}>
+                Manage announcements →
+              </span>
+            </Link>
+          )}
+
           {role === "ADMIN" && (
             <Link
               to="/groups"

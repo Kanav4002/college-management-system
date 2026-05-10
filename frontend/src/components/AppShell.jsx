@@ -1,6 +1,8 @@
 import { NavLink, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
+import { getNotifications, markAllNotificationsRead, markNotificationRead } from "../api/notificationApi";
 
 const ROLE_LABELS = {
   STUDENT: "Student",
@@ -24,8 +26,52 @@ export default function AppShell({ title, children }) {
   const role = auth?.role;
   const roleLabel = ROLE_LABELS[role] || role || "";
 
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+
+  useEffect(() => {
+    if (!auth) {
+      setNotifications([]);
+      return;
+    }
+
+    async function loadNotifications() {
+      try {
+        const response = await getNotifications();
+        setNotifications(response.data.data || []);
+      } catch {
+        setNotifications([]);
+      }
+    }
+
+    loadNotifications();
+  }, [auth]);
+
+  const unreadCount = notifications.filter((item) => !item.isRead).length;
+
+  const handleMarkRead = async (id) => {
+    try {
+      await markNotificationRead(id);
+      setNotifications((items) =>
+        items.map((item) => (item._id === id ? { ...item, isRead: true } : item))
+      );
+    } catch {
+      // ignore
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllNotificationsRead();
+      setNotifications((items) => items.map((item) => ({ ...item, isRead: true })));
+    } catch {
+      // ignore
+    }
+  };
+
   const navItems = [
     { to: "/dashboard", label: "Dashboard", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4" },
+    { to: "/announcements", label: "Announcements", icon: "M12 8v8m-4-4h8" },
   ];
 
   if (role === "STUDENT") {
@@ -47,6 +93,7 @@ export default function AppShell({ title, children }) {
   if (role === "ADMIN") {
     navItems.push(
       { to: "/admin", label: "Admin Panel", icon: "M9 17v-2a4 4 0 014-4h4" },
+      { to: "/manage-announcements", label: "Manage Announcements", icon: "M5 13l4 4L19 7" },
       { to: "/groups", label: "Group Management", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857" },
       { to: "/employeeLeave", label: "Leaves", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
       { to: "/submit-complaint", label: "Create Complaint", icon: "M12 4v16m8-8H4" }
@@ -98,6 +145,48 @@ export default function AppShell({ title, children }) {
               <span className="user-email">{auth?.email}</span>
               <span className="pill role-pill">{roleLabel}</span>
               {auth?.groupName && <span className="pill group-pill">{auth.groupName}</span>}
+            </div>
+
+            <div className="notification-wrapper">
+              <button
+                type="button"
+                className="icon-btn relative"
+                title="Notifications"
+                onClick={() => setNotificationsOpen((open) => !open)}
+              >
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0a3 3 0 11-6 0h6z" />
+                </svg>
+                {unreadCount > 0 && (
+                  <span className="notification-badge">{unreadCount}</span>
+                )}
+              </button>
+              {notificationsOpen && (
+                <div className="notification-menu glass-card">
+                  <div className="notification-header">
+                    <span>Notifications</span>
+                    <button type="button" className="text-xs text-slate-500" onClick={handleMarkAllRead}>
+                      Mark all as read
+                    </button>
+                  </div>
+                  <div className="notification-list">
+                    {notifications.length === 0 && <p className="notification-empty">No notifications yet.</p>}
+                    {notifications.map((notification) => (
+                      <button
+                        type="button"
+                        key={notification._id}
+                        className={`notification-item ${notification.isRead ? '' : 'unread'}`}
+                        onClick={() => handleMarkRead(notification._id)}
+                      >
+                        <p>{notification.message}</p>
+                        <span className="text-[11px] text-slate-500">
+                          {new Date(notification.createdAt).toLocaleString()}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <button type="button" onClick={toggleTheme} className="icon-btn" title={dark ? "Switch to light mode" : "Switch to dark mode"}>

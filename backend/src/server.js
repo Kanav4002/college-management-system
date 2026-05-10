@@ -14,6 +14,15 @@ async function bootstrap() {
       logger.info(`Server running on http://localhost:${env.PORT}`);
     });
 
+    server.on('error', (error) => {
+      if (error.code === 'EADDRINUSE') {
+        logger.error(`Port ${env.PORT} is already in use. Stop the running process or set a different PORT.`);
+      } else {
+        logger.error('Server failed to start:', error.message);
+      }
+      process.exit(1);
+    });
+
     const shutdown = async (signal) => {
       logger.info(`${signal} received — shutting down...`);
       server.close(async () => {
