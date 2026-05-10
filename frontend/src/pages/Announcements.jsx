@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import AppShell from '../components/AppShell';
 import { getAnnouncements } from '../api/announcementApi';
 
@@ -11,6 +12,8 @@ export default function Announcements() {
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedAnnouncementId = searchParams.get('announcementId');
 
   useEffect(() => {
     async function fetchAnnouncements() {
@@ -34,6 +37,22 @@ export default function Announcements() {
 
     fetchAnnouncements();
   }, [search, category]);
+
+  useEffect(() => {
+    if (selectedAnnouncementId && announcements.length > 0) {
+      const announcement = announcements.find((item) => item._id === selectedAnnouncementId);
+      if (announcement) {
+        setSelected(announcement);
+      }
+    }
+  }, [selectedAnnouncementId, announcements]);
+
+  const closeSelected = () => {
+    setSelected(null);
+    const params = new URLSearchParams(searchParams);
+    params.delete('announcementId');
+    setSearchParams(params);
+  };
 
   return (
     <AppShell title="Announcements">
@@ -92,7 +111,7 @@ export default function Announcements() {
         </div>
 
         {selected && (
-          <div className="modal-overlay" onClick={() => setSelected(null)}>
+          <div className="modal-overlay" onClick={closeSelected}>
             <div className="modal-panel glass-card" onClick={(e) => e.stopPropagation()}>
               <header className="flex items-start justify-between gap-4">
                 <div>
@@ -106,7 +125,7 @@ export default function Announcements() {
                     Published on {new Date(selected.createdAt).toLocaleDateString()}
                   </p>
                 </div>
-                <button type="button" className="icon-btn" onClick={() => setSelected(null)}>
+<button type="button" className="icon-btn" onClick={closeSelected}>
                   ✕
                 </button>
               </header>

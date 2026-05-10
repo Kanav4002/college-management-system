@@ -38,7 +38,9 @@ export default function AppShell({ title, children }) {
     async function loadNotifications() {
       try {
         const response = await getNotifications();
-        setNotifications(response.data.data || []);
+        const items = (response.data.data || []).filter((item) => !item.isRead);
+        console.log('Notifications:', items);
+        setNotifications(items);
       } catch {
         setNotifications([]);
       }
@@ -66,6 +68,33 @@ export default function AppShell({ title, children }) {
       setNotifications((items) => items.map((item) => ({ ...item, isRead: true })));
     } catch {
       // ignore
+    }
+  };
+
+  const handleToggleNotifications = async () => {
+    if (notificationsOpen) {
+      try {
+        await handleMarkAllRead();
+      } catch {
+        // ignore
+      }
+      setNotifications([]);
+    }
+    setNotificationsOpen((open) => !open);
+  };
+
+  const handleNotificationClick = async (notification) => {
+    const announcementId = notification.announcementId?._id || notification.announcementId;
+    try {
+      await handleMarkRead(notification._id);
+      setNotifications((items) => items.filter((item) => item._id !== notification._id));
+    } catch {
+      // ignore
+    }
+
+    setNotificationsOpen(false);
+    if (announcementId) {
+      navigate(`/announcements?announcementId=${encodeURIComponent(announcementId)}`);
     }
   };
 
@@ -147,44 +176,98 @@ export default function AppShell({ title, children }) {
               {auth?.groupName && <span className="pill group-pill">{auth.groupName}</span>}
             </div>
 
-            <div className="notification-wrapper">
+            <div className="notification-wrapper relative" style={{ zIndex: 99999 }}>
               <button
                 type="button"
-                className="icon-btn relative"
+                className="icon-btn"
                 title="Notifications"
-                onClick={() => setNotificationsOpen((open) => !open)}
+                onClick={handleToggleNotifications}
               >
                 <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0a3 3 0 11-6 0h6z" />
                 </svg>
-                {unreadCount > 0 && (
+                {unreadCount > 0 && !notificationsOpen && (
                   <span className="notification-badge">{unreadCount}</span>
                 )}
               </button>
+
               {notificationsOpen && (
-                <div className="notification-menu glass-card">
-                  <div className="notification-header">
-                    <span>Notifications</span>
-                    <button type="button" className="text-xs text-slate-500" onClick={handleMarkAllRead}>
-                      Mark all as read
-                    </button>
+                <div
+                  className="absolute right-0"
+                  style={{
+                    top: '100%',
+                    marginTop: '0.5rem',
+                    width: '360px',
+                    borderRadius: '1rem',
+                    border: '1px solid var(--border)',
+                    background: 'var(--bg-card)',
+                    zIndex: 99999,
+                    maxHeight: '420px',
+                    overflowY: 'auto',
+                    boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+                  }}
+                >
+                  <div
+                    className="p-4 border-b font-semibold"
+                    style={{
+                      borderColor: 'var(--border)',
+                      color: 'var(--text-primary)',
+                    }}
+                  >
+                    Notifications
                   </div>
-                  <div className="notification-list">
-                    {notifications.length === 0 && <p className="notification-empty">No notifications yet.</p>}
-                    {notifications.map((notification) => (
-                      <button
-                        type="button"
-                        key={notification._id}
-                        className={`notification-item ${notification.isRead ? '' : 'unread'}`}
-                        onClick={() => handleMarkRead(notification._id)}
-                      >
-                        <p>{notification.message}</p>
-                        <span className="text-[11px] text-slate-500">
-                          {new Date(notification.createdAt).toLocaleString()}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
+
+                  {notifications.length === 0 ? (
+                    <div
+                      className="p-4 text-sm italic"
+                      style={{ color: 'var(--text-secondary)' }}
+                    >
+                      No new notifications.
+                    </div>
+                  ) : (
+                    notifications.map((notification) => {
+                      const announcementTitle = notification.announcementTitle || notification.announcementId?.title || 'Announcement';
+                      const message = notification.message || 'New announcement posted.';
+                      const createdAt = notification.createdAt || notification.created_at || notification.createdAt;
+
+                      return (
+                        <button
+                          type="button"
+                          key={notification._id}
+                          className="w-full text-left"
+                          onClick={() => handleNotificationClick(notification)}
+                          style={{
+                            background: notification.isRead ? 'transparent' : 'rgba(59,130,246,0.06)',
+                            borderBottom: '1px solid var(--border)',
+                            padding: '16px',
+                            cursor: 'pointer',
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          <div
+                            className="font-semibold text-sm mb-1"
+                            style={{ color: 'var(--text-primary)' }}
+                          >
+                            {announcementTitle}
+                          </div>
+
+                          <div
+                            className="text-sm mb-1"
+                            style={{ color: 'var(--text-secondary)' }}
+                          >
+                            {message}
+                          </div>
+
+                          <div
+                            className="text-xs"
+                            style={{ color: 'var(--text-secondary)', opacity: 0.7 }}
+                          >
+                            {new Date(createdAt).toLocaleString()}
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
               )}
             </div>

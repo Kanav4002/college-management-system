@@ -344,6 +344,8 @@
 }
 
 .shell-topbar {
+  position: relative;
+  z-index: 50;
   min-height: 64px;
   border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
   border-radius: 1rem;
@@ -452,7 +454,7 @@
   right: 0;
   top: 3rem;
   width: 22rem;
-  max-height: 22rem;
+  max-height: 400px;
   padding: 0.75rem;
   border-radius: 1rem;
   overflow: hidden;
@@ -468,10 +470,11 @@
 }
 
 .notification-list {
-  max-height: 18rem;
+  max-height: 400px;
   overflow-y: auto;
   display: grid;
   gap: 0.5rem;
+  padding: 0.5rem 0;
 }
 
 .notification-item {
@@ -484,10 +487,32 @@
   color: var(--text-primary);
   display: grid;
   gap: 0.35rem;
+  cursor: pointer;
+}
+
+.notification-item:hover {
+  background: color-mix(in srgb, var(--bg-input) 95%, transparent);
 }
 
 .notification-item.unread {
-  background: color-mix(in srgb, var(--accent) 12%, var(--bg-input));
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.notification-item h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.notification-item p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.notification-item small {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.7;
 }
 
 .notification-empty {

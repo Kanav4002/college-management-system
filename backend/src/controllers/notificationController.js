@@ -4,9 +4,16 @@ const AppError = require('../utils/AppError');
 async function listNotifications(req, res) {
   const notifications = await Notification.find({ userId: req.user.id })
     .sort({ createdAt: -1 })
+    .populate('announcementId', 'title')
     .lean();
 
-  return res.json({ success: true, data: notifications });
+  const shapedNotifications = notifications.map((notification) => ({
+    ...notification,
+    announcementTitle: notification.announcementId?.title || 'Announcement',
+    announcementId: notification.announcementId?._id || notification.announcementId,
+  }));
+
+  return res.json({ success: true, data: shapedNotifications });
 }
 
 async function markNotificationRead(req, res) {
