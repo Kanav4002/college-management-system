@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
+import axios from "axios";
 
 const DutyLeave = () => {
   const user = "Muskan";
@@ -12,6 +13,7 @@ const DutyLeave = () => {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
 
+  const [reason, setReason] = useState("");
   const [leaveHistory, setLeaveHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
 
@@ -81,6 +83,7 @@ const DutyLeave = () => {
 
   useEffect(() => {
     renderCal();
+    fetchLeaves();
   }, [mo, yr]);
 
   const pm = () => {
@@ -97,23 +100,64 @@ const DutyLeave = () => {
     } else setMo(mo + 1);
   };
 
+  /* -------- FETCH LEAVES -------- */
+  const fetchLeaves = async () => {
+  try {
+    const token = localStorage.getItem("token");
+
+    const res = await axios.get(
+      "http://localhost:8080/api/leaves/my",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    setLeaveHistory(res.data);
+  } catch (err) {
+    console.error(err);
+  }
+};
+
   /* -------- SUBMIT -------- */
-  const submitForm = () => {
-    const days = calculateDays();
-    if (days === 0) return alert("Select dates first");
+  const submitForm = async () => {
+  try {
+    if (!startDate || !endDate) {
+      alert("Select dates first");
+      return;
+    }
 
-    const newLeave = {
-      id: Date.now(),
-      type: leaveType,
-      from: startDate.toDateString(),
-      to: endDate.toDateString(),
-      days
-    };
+    const token = localStorage.getItem("token");
 
-    setLeaveHistory([...leaveHistory, newLeave]);
+    await axios.post(
+      "http://localhost:8080/api/leaves",
+      {
+        leaveType,
+        reason,
+        startDate: startDate.toISOString().split("T")[0],
+        endDate: endDate.toISOString().split("T")[0],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    alert("Leave Applied Successfully");
+
     setStartDate(null);
     setEndDate(null);
-  };
+    setReason("");
+
+    fetchLeaves(); // refresh
+
+  } catch (err) {
+    console.error(err);
+    alert("Error");
+  }
+};
 
   return (
     <>
@@ -317,7 +361,7 @@ const DutyLeave = () => {
                 <option>Sick Leave</option>
               </select>
 
-              <textarea placeholder="Reason"></textarea>
+              <textarea placeholder="Reason" value={reason} onChange={(e) => setReason(e.target.value)}></textarea>
             </div>
 
             <div>
