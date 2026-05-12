@@ -4,12 +4,14 @@
 const app = require('./app');
 const env = require('./config/env');
 const { connectDB, disconnectDB } = require('./config/database');
+const { setupSocketServer } = require('./socket/socketServer');
 const logger = require('./utils/logger');
 
 async function startServer(port) {
   return new Promise((resolve, reject) => {
     const server = app.listen(port, () => {
       logger.info(`Server running on http://localhost:${port}`);
+      setupSocketServer(server);
       resolve(server);
     });
 

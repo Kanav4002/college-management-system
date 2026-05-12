@@ -17,6 +17,7 @@ const complaintRoutes = require('./modules/complaints/complaint.routes');
 const leaveRoutes     = require('./modules/leave/leave.routes');
 const announcementRoutes = require('./routes/announcementRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 
 const app = express();
 
@@ -40,6 +41,7 @@ app.use('/api/complaints', complaintRoutes);
 app.use('/api/leaves',     leaveRoutes);
 app.use('/api/announcements', announcementRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/chats', chatRoutes);
 
 // 404 + central error handler must come last.
 app.use(notFoundMiddleware);

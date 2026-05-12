@@ -115,6 +115,7 @@ export default function AppShell({ title, children }) {
   if (role === "STUDENT") {
     navItems.push(
       { to: "/announcements", label: "Announcements", icon: "campaign" },
+      { to: "/chat", label: "Chat", icon: "chat" },
       { to: "/student", label: "Student Panel", icon: "school" },
       { to: "/studentLeave", label: "Leaves", icon: "calendar_today" },
       { to: "/submit-complaint", label: "Raise Complaint", icon: "add_circle" }
@@ -124,6 +125,7 @@ export default function AppShell({ title, children }) {
   if (role === "MENTOR") {
     navItems.push(
       { to: "/announcements", label: "Announcements", icon: "campaign" },
+      { to: "/chat", label: "Chat", icon: "chat" },
       { to: "/mentor", label: "Mentor Panel", icon: "groups" },
       { to: "/employeeLeave", label: "Leaves", icon: "calendar_today" },
       { to: "/submit-complaint", label: "Raise Complaint", icon: "add_circle" }
@@ -133,6 +135,7 @@ export default function AppShell({ title, children }) {
   if (role === "ADMIN") {
     navItems.push(
       { to: "/announcements", label: "Announcements", icon: "campaign" },
+      { to: "/chat", label: "Chat", icon: "chat" },
       { to: "/admin", label: "Admin Panel", icon: "admin_panel_settings" },
       { to: "/manage-announcements", label: "Manage Announcements", icon: "edit_calendar" },
       { to: "/groups", label: "Groups", icon: "group" },
