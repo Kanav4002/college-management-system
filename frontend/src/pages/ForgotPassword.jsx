@@ -5,6 +5,7 @@ import api, { getApiErrorMessage } from "../api/api";
 function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
+  const [resetUrl, setResetUrl] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -16,7 +17,15 @@ function ForgotPassword() {
 
     try {
       const res = await api.post("/auth/forgot-password", { email });
-      setMessage(res.data || "If an account exists, a reset link has been sent.");
+      // Backend returns a plain message string in production, but in
+      // development it may include a `resetUrl` property to help testing
+      // when SMTP is not configured.
+      if (res.data && typeof res.data === 'object') {
+        setMessage(res.data.message || "If an account exists, a reset link has been sent.");
+        if (res.data.resetUrl) setResetUrl(res.data.resetUrl);
+      } else {
+        setMessage(res.data || "If an account exists, a reset link has been sent.");
+      }
     } catch (err) {
       setError(
         getApiErrorMessage(err, "Something went wrong. Please try again.")
@@ -49,6 +58,13 @@ function ForgotPassword() {
           {message && (
             <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
               {message}
+            </div>
+          )}
+
+          {resetUrl && (
+            <div className="mb-4 px-4 py-3 text-sm">
+              <div className="text-xs text-slate-500 mb-1">Development reset link:</div>
+              <a href={resetUrl} className="text-blue-600 underline break-all">{resetUrl}</a>
             </div>
           )}
 

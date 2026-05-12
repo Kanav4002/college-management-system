@@ -11,12 +11,12 @@ const registerRules = [
   body('role').isString().isIn(['STUDENT', 'MENTOR', 'ADMIN']).withMessage('Role must be STUDENT, MENTOR, or ADMIN'),
   body('registrationToken').optional({ nullable: true, checkFalsy: true }).isString(),
   body('name').optional({ nullable: true, checkFalsy: true }).isString().trim().isLength({ min: 2 }),
-  body('email').optional({ nullable: true, checkFalsy: true }).isEmail().normalizeEmail(),
+  body('email').optional({ nullable: true, checkFalsy: true }).isEmail().normalizeEmail({ gmail_remove_dots: false }),
   body('password').optional({ nullable: true, checkFalsy: true }).isString().isLength({ min: 6 }),
 ];
 
 const loginRules = [
-  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('email').isEmail().normalizeEmail({ gmail_remove_dots: false }).withMessage('Valid email is required'),
   body('password').isString().notEmpty().withMessage('Password is required'),
 ];
 
@@ -25,7 +25,7 @@ const googleLoginRules = [
 ];
 
 const forgotPasswordRules = [
-  body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
+  body('email').isEmail().normalizeEmail({ gmail_remove_dots: false }).withMessage('Valid email is required'),
 ];
 
 const resetPasswordRules = [

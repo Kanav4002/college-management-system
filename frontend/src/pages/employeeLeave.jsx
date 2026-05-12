@@ -83,7 +83,7 @@ export default function EmployeeDutyLeave() {
               <select
                 value={leaveType}
                 onChange={(e) => setLeaveType(e.target.value)}
-                className="glass-input"
+                className="glass-input w-full"
               >
                 {LEAVE_TYPES.map((type) => (
                   <option key={type} value={type}>
@@ -102,7 +102,7 @@ export default function EmployeeDutyLeave() {
                   type="date"
                   value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
-                  className="glass-input"
+                  className="glass-input w-full"
                 />
               </div>
 
@@ -114,7 +114,7 @@ export default function EmployeeDutyLeave() {
                   type="date"
                   value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
-                  className="glass-input"
+                  className="glass-input w-full"
                 />
               </div>
             </div>
@@ -128,7 +128,7 @@ export default function EmployeeDutyLeave() {
                 onChange={(e) => setReason(e.target.value)}
                 rows={4}
                 placeholder="Describe purpose, impact and coverage plan..."
-                className="glass-input resize-none"
+                className="glass-input resize-none w-full min-h-[100px]"
               />
             </div>
           </div>
