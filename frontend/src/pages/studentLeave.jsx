@@ -1,435 +1,329 @@
 import React, { useEffect, useState } from "react";
 import AppShell from "../components/AppShell";
+import api from "../api/api";
+
+const LEAVE_TYPES = ["Medical", "Personal", "Duty Leave", "Academic"];
+
+function StatCard({ label, value, icon, color }) {
+  return (
+    <div className="stat-card">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="material-symbols-outlined text-lg" style={{ color }}>{icon}</span>
+        <span className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--on-surface-variant)" }}>{label}</span>
+      </div>
+      <p className="text-4xl font-bold" style={{ color: "var(--on-surface)" }}>{value}</p>
+    </div>
+  );
+}
+
+const statusStyles = {
+  PENDING: { bg: "color-mix(in srgb, #facc15 15%, transparent)", color: "#facc15" },
+  APPROVED: { bg: "color-mix(in srgb, #4ade80 15%, transparent)", color: "#4ade80" },
+  REJECTED: { bg: "color-mix(in srgb, var(--error) 15%, transparent)", color: "var(--error)" },
+};
+function LeaveHistoryCard({ leave }) {
+  const s = statusStyles[leave.status] || statusStyles.PENDING;
+
+  return (
+    <div className="card">
+      <div className="flex justify-between items-start mb-3">
+        <div>
+          <h4 className="font-semibold" style={{ color: "var(--on-surface)" }}>
+            {leave.type || leave.leaveType}
+          </h4>
+          <p className="text-sm" style={{ color: "var(--on-surface-variant)" }}>
+            {new Date(leave.from).toLocaleDateString()} - {new Date(leave.to).toLocaleDateString()} • {leave.days || leave.duration} Days
+          </p>
+        </div>
+        <span
+          className="px-3 py-1 rounded-full text-xs font-semibold"
+          style={{ background: s.bg, color: s.color }}
+        >
+          {leave.status}
+        </span>
+      </div>
+      {leave.reason && (
+        <p className="text-sm mb-3 line-clamp-2" style={{ color: "var(--on-surface-variant)" }}>
+          {leave.reason}
+        </p>
+      )}
+      <div className="flex items-center justify-between border-t pt-3" style={{ borderColor: "var(--outline-variant)" }}>
+        <span className="text-xs" style={{ color: "var(--on-surface-variant)" }}>
+          {new Date(leave.createdAt || leave.appliedAt).toLocaleDateString()}
+        </span>
+      </div>
+    </div>
+  );
+}
 
 const DutyLeave = () => {
-  const user = "Muskan";
-
-  const today = new Date();
-  const [yr, setYr] = useState(today.getFullYear());
-  const [mo, setMo] = useState(today.getMonth());
-
-  const [calendar, setCalendar] = useState([]);
-  const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
-
+  const [leaveType, setLeaveType] = useState(LEAVE_TYPES[0]);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [reason, setReason] = useState("");
   const [leaveHistory, setLeaveHistory] = useState([]);
-  const [showHistory, setShowHistory] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const [leaveType, setLeaveType] = useState("Duty Leave");
+  const selectedDays = (() => {
+    if (!fromDate || !toDate) return 0;
+    const start = new Date(fromDate);
+    const end = new Date(toDate);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) return 0;
+    return Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
+  })();
 
-  const totalLeaves = 30;
-
-  const DNS = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-  const MNS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-
-  /* -------- DATE LOGIC -------- */
-  const handleDateClick = (day) => {
-    const selected = new Date(yr, mo, day);
-
-    if (!startDate || (startDate && endDate)) {
-      setStartDate(selected);
-      setEndDate(null);
-    } else {
-      if (selected < startDate) {
-        setEndDate(startDate);
-        setStartDate(selected);
-      } else {
-        setEndDate(selected);
-      }
+  const fetchHistory = async () => {
+    try {
+      const res = await api.get("/leaves/my");
+      setLeaveHistory(res.data || []);
+    } catch {
+      setLeaveHistory([]);
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const isInRange = (d) => {
-    if (!startDate || !endDate) return false;
-    const date = new Date(yr, mo, d);
-    return date >= startDate && date <= endDate;
-  };
-
-  const isSelected = (d) => {
-    const date = new Date(yr, mo, d);
-    return (
-      (startDate && date.getTime() === startDate.getTime()) ||
-      (endDate && date.getTime() === endDate.getTime())
-    );
-  };
-
-  const calculateDays = () => {
-    if (!startDate || !endDate) return 0;
-    return (endDate - startDate) / (1000 * 60 * 60 * 24) + 1;
-  };
-
-  const usedLeaves = leaveHistory.reduce((acc, l) => acc + l.days, 0);
-  const remainingLeaves = totalLeaves - usedLeaves;
-
-  /* -------- CALENDAR -------- */
-  const renderCal = () => {
-    let cal = [];
-
-    DNS.forEach(d => cal.push({ type: "dn", value: d }));
-
-    const first = new Date(yr, mo, 1).getDay();
-    const tot = new Date(yr, mo + 1, 0).getDate();
-
-    for (let i = 0; i < first; i++) cal.push({ type: "empty" });
-
-    for (let d = 1; d <= tot; d++) {
-      cal.push({ type: "date", value: d });
-    }
-
-    setCalendar(cal);
   };
 
   useEffect(() => {
-    renderCal();
-  }, [mo, yr]);
+    fetchHistory();
+  }, []);
 
-  const pm = () => {
-    if (mo === 0) {
-      setMo(11);
-      setYr(yr - 1);
-    } else setMo(mo - 1);
+  const submitForm = async () => {
+    if (!fromDate || !toDate || !reason.trim() || selectedDays <= 0) {
+      setError("Please fill all fields and select a valid date range.");
+      return;
+    }
+
+    setSubmitting(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      await api.post("/leaves", {
+        leaveType,
+        reason,
+        startDate: fromDate,
+        endDate: toDate,
+        days: selectedDays,
+      });
+      setFromDate("");
+      setToDate("");
+      setReason("");
+      setLeaveType(LEAVE_TYPES[0]);
+      setSuccess("Leave request submitted successfully.");
+      fetchHistory();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to submit leave request.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const nm = () => {
-    if (mo === 11) {
-      setMo(0);
-      setYr(yr + 1);
-    } else setMo(mo + 1);
-  };
-
-  /* -------- SUBMIT -------- */
-  const submitForm = () => {
-    const days = calculateDays();
-    if (days === 0) return alert("Select dates first");
-
-    const newLeave = {
-      id: Date.now(),
-      type: leaveType,
-      from: startDate.toDateString(),
-      to: endDate.toDateString(),
-      days
-    };
-
-    setLeaveHistory([...leaveHistory, newLeave]);
-    setStartDate(null);
-    setEndDate(null);
-  };
+  const approvedCount = leaveHistory.filter(l => l.status === "APPROVED").length;
+  const pendingCount = leaveHistory.filter(l => l.status === "PENDING").length;
+  const totalLeaves = leaveHistory.length;
 
   return (
     <AppShell title="Student Leave Dashboard">
-
-      <style>{`
-        :root {
-          --bg: var(--bg-body);
-          --card: var(--bg-card);
-          --text: var(--text-primary);
-          --surface-border: var(--border);
-          --accent-color: var(--accent);
-          --accent-soft: var(--bg-elevated);
-          --accent-range: color-mix(in srgb, var(--accent) 18%, white);
-          --placeholder: var(--text-secondary);
-        }
-
-        .dark {
-          --bg: var(--bg-body);
-          --card: var(--bg-card);
-          --text: var(--text-primary);
-          --surface-border: var(--border);
-          --accent-color: var(--accent);
-          --accent-soft: var(--bg-elevated);
-          --accent-range: color-mix(in srgb, var(--accent) 25%, black);
-          --placeholder: var(--text-secondary);
-        }
-
-        .leave-root {
-          color: var(--text);
-          font-family: 'Inter', sans-serif;
-        }
-
-        .container {
-          width: 60%;
-          margin: auto;
-          margin-top: 20px;
-        }
-
-        .stats {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 20px;
-          margin-bottom: 20px;
-        }
-
-        .stat {
-          background: color-mix(in srgb, var(--bg-card) 80%, transparent);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
-          padding: 1.5rem;
-          border-radius: 12px;
-          border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-        }
-
-        .stat h2 {
-          color: var(--accent-color);
-        }
-
-        .card {
-          background: color-mix(in srgb, var(--bg-card) 82%, transparent);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
-          padding: 2rem;
-          border-radius: 16px;
-          border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-        }
-
-        .grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 30px;
-        }
-
-        input, textarea, select {
-          width: 100%;
-          padding: 12px;
-          margin-bottom: 12px;
-          border-radius: 10px;
-          border: 1px solid color-mix(in srgb, var(--surface-border) 55%, transparent);
-          background: color-mix(in srgb, var(--card) 80%, transparent);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          color: inherit;
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-        }
-
-        input:focus, textarea:focus, select:focus {
-          outline: none;
-          border-color: var(--accent-color);
-          background: color-mix(in srgb, var(--card) 85%, transparent);
-          box-shadow: 
-            inset 0 1px 0 rgba(255, 255, 255, 0.08),
-            0 0 0 3px color-mix(in srgb, var(--accent-color) 20%, transparent);
-        }
-
-        textarea {
-          min-height: 100px;
-        }
-
-        .calendar {
-          display: grid;
-          grid-template-columns: repeat(7, 1fr);
-          gap: 6px;
-          margin-top: 10px;
-        }
-
-        .day {
-          padding: 10px;
-          border-radius: 8px;
-          cursor: pointer;
-          text-align: center;
-          background: color-mix(in srgb, var(--card) 60%, transparent);
-          border: 1px solid color-mix(in srgb, var(--surface-border) 35%, transparent);
-          transition: all 150ms ease;
-        }
-
-        .day:hover {
-          background: color-mix(in srgb, var(--accent-soft) 70%, transparent);
-          transform: translateY(-1px);
-        }
-
-        .selected {
-          background: var(--accent-color);
-          color: white;
-          border-color: var(--accent-color);
-          box-shadow: 0 0 16px color-mix(in srgb, var(--accent-color) 40%, transparent);
-        }
-
-        .range {
-          background: color-mix(in srgb, var(--accent-color) 15%, transparent);
-          border-color: color-mix(in srgb, var(--accent-color) 40%, transparent);
-        }
-
-        .btn-row {
-          display: flex;
-          justify-content: space-between;
-          margin-top: 20px;
-        }
-
-        .btn {
-          background: var(--accent-color);
-          color: white;
-          padding: 12px 20px;
-          border-radius: 10px;
-          border: none;
-          cursor: pointer;
-          font-weight: 600;
-          box-shadow: 0 0 24px color-mix(in srgb, var(--accent-color) 30%, transparent);
-          transition: all 200ms ease;
-        }
-
-        .btn:hover {
-          box-shadow: 0 0 32px color-mix(in srgb, var(--accent-color) 40%, transparent);
-          transform: translateY(-1px);
-        }
-
-        .btn-outline {
-          padding: 10px 18px;
-          border-radius: 8px;
-          border: 1px solid color-mix(in srgb, var(--accent-color) 50%, transparent);
-          background: color-mix(in srgb, var(--accent-color) 8%, transparent);
-          color: var(--accent-color);
-          cursor: pointer;
-          font-weight: 600;
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
-          transition: all 150ms ease;
-        }
-
-        .btn-outline:hover {
-          background: color-mix(in srgb, var(--accent-color) 15%, transparent);
-          border-color: color-mix(in srgb, var(--accent-color) 65%, transparent);
-        }
-
-        .btn-outline:hover {
-          background: var(--accent-color);
-          color: white;
-        }
-
-        .history {
-          margin-top: 20px;
-          padding: 15px;
-          border-radius: 12px;
-          background: var(--card);
-          border: 1px solid var(--surface-border);
-        }
-
-        .history-item {
-          display: flex;
-          justify-content: space-between;
-          padding: 10px 0;
-          border-bottom: 1px solid var(--surface-border);
-        }
-
-        .history-item:last-child {
-          border-bottom: none;
-        }
-
-        .days {
-          color: var(--accent-color);
-          font-weight: 600;
-        }
-          /* FIX PLACEHOLDER VISIBILITY */
-        input::placeholder,
-        textarea::placeholder {
-        color: var(--placeholder);
-        opacity: 1;
-        }
-
-        /* DARK MODE PLACEHOLDER */
-        .dark input::placeholder,
-        .dark textarea::placeholder {
-         color: var(--placeholder);
-        }
-      `}</style>
-
-      <div className="leave-root container">
-        {/* STATS */}
-        <div className="stats">
-          <div className="stat">
-            <h2>{calculateDays()}</h2>
-            <p>Selected Days</p>
-          </div>
-
-          <div className="stat">
-            <h2>{usedLeaves}/{totalLeaves}</h2>
-            <p>Used Leaves</p>
-          </div>
-
-          <div className="stat">
-            <h2>{remainingLeaves}/{totalLeaves}</h2>
-            <p>Remaining Leaves</p>
-          </div>
+      <main className="max-w-5xl mx-auto px-4 py-6 space-y-8">
+        {/* Greeting */}
+        <div>
+          <h2 className="text-3xl font-bold mb-1" style={{ color: "var(--on-surface)" }}>
+            Leave Management
+          </h2>
+          <p style={{ color: "var(--on-surface-variant)" }}>
+            Apply for leave and track your requests.
+          </p>
         </div>
 
-        {/* FORM */}
-        <div className="card">
-          <div className="grid">
-            <div>
-              <input placeholder="Name" />
-              <input placeholder="Roll No" />
+        {/* Stats */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <StatCard label="Total Leaves" value={totalLeaves} icon="calendar_month" color="var(--on-surface)" />
+          <StatCard label="Pending" value={pendingCount} icon="pending" color="#facc15" />
+          <StatCard label="Approved" value={approvedCount} icon="check_circle" color="#4ade80" />
+          <StatCard label="Selected Days" value={selectedDays} icon="schedule" color="var(--primary)" />
+        </div>
 
-              <select
-                value={leaveType}
-                onChange={(e) => setLeaveType(e.target.value)}
-              >
-                <option>Duty Leave</option>
-                <option>Medical Leave</option>
-                <option>Sick Leave</option>
-              </select>
-
-              <textarea placeholder="Reason"></textarea>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Leave Form */}
+          <div className="card">
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-1" style={{ color: "var(--on-surface)" }}>
+                Apply for Leave
+              </h3>
+              <p className="text-sm" style={{ color: "var(--on-surface-variant)" }}>
+                Submit your request for time off.
+              </p>
             </div>
 
-            <div>
+            {error && (
+              <div className="mb-4 px-4 py-3 rounded-lg text-sm" style={{ background: "var(--error-container)", color: "var(--on-error-container)" }}>
+                <span className="material-symbols-outlined text-base mr-2">error</span>
+                {error}
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {/* Leave Type */}
               <div>
-                <button onClick={pm}>‹</button>
-                <span style={{ margin: "0 10px" }}>
-                  {MNS[mo]} {yr}
-                </span>
-                <button onClick={nm}>›</button>
-              </div>
-
-              <div className="calendar">
-                {calendar.map((item, i) => {
-                  if (item.type === "dn") return <div key={i}>{item.value}</div>;
-                  if (item.type === "empty") return <div key={i}></div>;
-
-                  return (
-                    <div
-                      key={i}
-                      className={`day 
-                        ${isSelected(item.value) ? "selected" : ""}
-                        ${isInRange(item.value) ? "range" : ""}
-                      `}
-                      onClick={() => handleDateClick(item.value)}
-                    >
-                      {item.value}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          <div className="btn-row">
-            <button className="btn" onClick={submitForm}>
-              Submit Leave
-            </button>
-
-            <button
-              className="btn-outline"
-              onClick={() => setShowHistory(!showHistory)}
-            >
-              {showHistory ? "Hide Leave History" : "View Leave History"}
-            </button>
-          </div>
-
-          {showHistory && (
-            <div className="history">
-              <h3>Leave History</h3>
-
-              {leaveHistory.map((l) => (
-                <div key={l.id} className="history-item">
-                  <div>
-                    <strong>{l.type}</strong> | {l.from} → {l.to}
-                  </div>
-                  <span className="days">{l.days} days</span>
+                <label className="block text-sm font-medium mb-2" style={{ color: "var(--on-surface)" }}>
+                  Leave Type
+                </label>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[16px]" style={{ color: "var(--on-surface-variant)" }}>work</span>
+                  <select
+                    value={leaveType}
+                    onChange={(e) => setLeaveType(e.target.value)}
+                    className="w-full appearance-none rounded-xl pl-11 pr-4 py-3 text-sm outline-none transition"
+                    style={{
+                      background: "var(--surface-container-low)",
+                      border: "1px solid var(--outline-variant)",
+                      color: "var(--on-surface)",
+                    }}
+                  >
+                    {LEAVE_TYPES.map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                  <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-base pointer-events-none" style={{ color: "var(--on-surface-variant)" }}>
+                    expand_more
+                  </span>
                 </div>
-              ))}
+              </div>
+
+              {/* Dates */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--on-surface)" }}>
+                    Start Date
+                  </label>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[16px]" style={{ color: "var(--on-surface-variant)" }}>calendar_today</span>
+                    <input
+                      type="date"
+                      value={fromDate}
+                      onChange={(e) => setFromDate(e.target.value)}
+                      className="w-full rounded-xl pl-11 pr-4 py-3 text-sm outline-none transition"
+                      style={{
+                        background: "var(--surface-container-low)",
+                        border: "1px solid var(--outline-variant)",
+                        color: "var(--on-surface)",
+                      }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--on-surface)" }}>
+                    End Date
+                  </label>
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-[16px]" style={{ color: "var(--on-surface-variant)" }}>calendar_today</span>
+                    <input
+                      type="date"
+                      value={toDate}
+                      onChange={(e) => setToDate(e.target.value)}
+                      className="w-full rounded-xl pl-11 pr-4 py-3 text-sm outline-none transition"
+                      style={{
+                        background: "var(--surface-container-low)",
+                        border: "1px solid var(--outline-variant)",
+                        color: "var(--on-surface)",
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Duration Badge */}
+              {selectedDays > 0 && (
+                <div className="flex justify-end">
+                  <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium" style={{ background: "color-mix(in srgb, var(--primary) 15%, transparent)", color: "var(--primary)" }}>
+                    <span className="material-symbols-outlined text-base">schedule</span>
+                    Duration: {selectedDays} Day{selectedDays !== 1 ? "s" : ""}
+                  </span>
+                </div>
+              )}
+
+              {/* Reason */}
+              <div>
+                <label className="block text-sm font-medium mb-2" style={{ color: "var(--on-surface)" }}>
+                  Reason for Leave
+                </label>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-4 top-4 text-[16px]" style={{ color: "var(--on-surface-variant)" }}>description</span>
+                  <textarea
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    rows={4}
+                    placeholder="Please provide a brief explanation for your leave request..."
+                    className="w-full rounded-xl pl-11 pr-4 py-3 text-sm outline-none transition resize-none"
+                    style={{
+                      background: "var(--surface-container-low)",
+                      border: "1px solid var(--outline-variant)",
+                      color: "var(--on-surface)",
+                    }}
+                  />
+                </div>
+              </div>
+
+              {success && (
+                <div className="mb-4 px-4 py-3 rounded-lg text-sm" style={{ background: "var(--success-container)", color: "var(--on-success-container)" }}>
+                  <span className="material-symbols-outlined text-base mr-2">check_circle</span>
+                  {success}
+                </div>
+              )}
+
+              {/* Submit */}
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  onClick={() => { setFromDate(""); setToDate(""); setReason(""); setError(""); }}
+                  className="px-6 py-3 rounded-xl text-sm font-medium transition"
+                  style={{ border: "1px solid var(--outline-variant)", color: "var(--on-surface)" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={submitForm}
+                  disabled={submitting}
+                  className="px-8 py-3 rounded-xl text-sm font-bold transition inline-flex items-center gap-2"
+                  style={{ background: "var(--primary)", color: "var(--on-primary)" }}
+                >
+                  {submitting ? "Submitting..." : "Submit Request"}
+                  {!submitting && <span className="material-symbols-outlined text-base">send</span>}
+                </button>
+              </div>
             </div>
-          )}
+          </div>
+
+          {/* Leave History */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4" style={{ color: "var(--on-surface)" }}>
+              Recent Leave History
+            </h3>
+
+            {loading ? (
+              <div className="flex items-center justify-center py-12" style={{ color: "var(--on-surface-variant)" }}>
+                <span className="material-symbols-outlined animate-spin text-base mr-2">progress_activity</span>
+                Loading...
+              </div>
+            ) : leaveHistory.length === 0 ? (
+              <div className="card text-center py-12">
+                <span className="material-symbols-outlined text-4xl mb-3" style={{ color: "var(--on-surface-variant)" }}>calendar_today</span>
+                <p className="text-sm" style={{ color: "var(--on-surface-variant)" }}>
+                  No leave requests yet. Submit one to get started.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {leaveHistory.map((leave) => (
+                  <LeaveHistoryCard key={leave._id || leave.id} leave={leave} />
+                ))}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      </main>
     </AppShell>
   );
 };

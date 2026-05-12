@@ -26,6 +26,53 @@ const POPULATE = [
   { path: 'mentor',  select: 'name email role' },
 ];
 
+async function buildAssignedFilter(actor) {
+  let filter = {};
+
+  if (actor.role === 'MENTOR') {
+    // Always read the mentor's current group from the DB so the list is
+    // resilient to stale JWTs (mentor may have been assigned a group
+    // after their token was issued).
+    const me = await User.findById(actor.id).select('group').lean();
+    const groupId = me?.group || null;
+
+    if (groupId) {
+      const studentIds = await User.find({ role: 'STUDENT', group: groupId })
+        .select('_id').lean();
+      filter = { student: { $in: studentIds.map((s) => s._id) } };
+    } else {
+      // Mentor not yet assigned to a group → fall back to leaves marked
+      // for this mentor (e.g. legacy data) so the panel isn't empty.
+      filter = { mentor: actor.id };
+    }
+  }
+
+  return filter;
+}
+
+async function debugRecent() {
+  // Return the latest 20 leaves with student -> group -> mentor populated
+  const list = await Leave.find({})
+    .sort({ createdAt: -1 })
+    .limit(20)
+    .populate({ path: 'student', select: 'name email role group', populate: { path: 'group', select: 'name mentor' } })
+    .populate({ path: 'mentor', select: 'name email role' });
+
+  // Map each leave to a shallow debug response
+  return list.map((l) => ({
+    id: l._id.toString(),
+    leaveType: l.leaveType,
+    status: l.status,
+    startDate: l.startDate,
+    endDate: l.endDate,
+    days: l.days,
+    student: l.student ? { id: l.student._id?.toString(), name: l.student.name, email: l.student.email, group: l.student.group?._id?.toString() || l.student.group } : null,
+    studentGroup: l.student && l.student.group ? { id: l.student.group._id?.toString(), name: l.student.group.name, mentor: l.student.group.mentor } : null,
+    mentor: l.mentor ? { id: l.mentor._id?.toString(), name: l.mentor.name, email: l.mentor.email } : null,
+    appliedAt: l.appliedAt,
+  }));
+}
+
 async function apply(actor, payload) {
   const { leaveType, reason, startDate, endDate } = payload;
   if (!leaveType) throw AppError.badRequest('leaveType is required');
@@ -69,22 +116,44 @@ async function listMine(actor) {
 
 async function listAssigned(actor) {
   // Mentors see leaves from their group's students; admins see everything.
-  let filter = {};
-  if (actor.role === 'MENTOR') {
-    if (actor.groupId) {
-      const studentIds = await User.find({ role: 'STUDENT', group: actor.groupId })
-        .select('_id').lean();
-      filter = { student: { $in: studentIds.map((s) => s._id) } };
-    } else {
-      // Mentor not yet assigned to a group → fall back to leaves marked
-      // for this mentor (e.g. legacy data) so the panel isn't empty.
-      filter = { mentor: actor.id };
-    }
-  }
-  const list = await Leave.find(filter)
+  const filter = await buildAssignedFilter(actor);
+  const query = actor.role === 'MENTOR' ? { ...filter, status: 'PENDING' } : filter;
+  const list = await Leave.find(query)
     .populate(POPULATE)
     .sort({ createdAt: -1 });
   return list.map(leaveToResponse);
+}
+
+async function statsMentor(actor) {
+  const filter = await buildAssignedFilter(actor);
+  const leaves = await Leave.find(filter).select('status startDate endDate reviewedAt').lean();
+
+  const today = new Date();
+  const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+
+  const counts = { total: leaves.length, pending: 0, approved: 0, rejected: 0, approvedToday: 0, onLeave: 0 };
+  for (const leave of leaves) {
+    const status = String(leave.status || '').toUpperCase();
+    if (status === 'PENDING') counts.pending += 1;
+    if (status === 'APPROVED') counts.approved += 1;
+    if (status === 'REJECTED') counts.rejected += 1;
+
+    const reviewedAt = leave.reviewedAt ? new Date(leave.reviewedAt) : null;
+    if (status === 'APPROVED' && reviewedAt && reviewedAt >= startOfDay && reviewedAt <= endOfDay) {
+      counts.approvedToday += 1;
+    }
+
+    if (status === 'APPROVED') {
+      const startDate = leave.startDate ? new Date(leave.startDate) : null;
+      const endDate = leave.endDate ? new Date(leave.endDate) : null;
+      if (startDate && endDate && startDate <= endOfDay && endDate >= startOfDay) {
+        counts.onLeave += 1;
+      }
+    }
+  }
+
+  return counts;
 }
 
 async function review(actor, id, status) {
@@ -108,4 +177,4 @@ async function review(actor, id, status) {
 const approve = (actor, id) => review(actor, id, 'APPROVED');
 const reject  = (actor, id) => review(actor, id, 'REJECTED');
 
-module.exports = { apply, listMine, listAssigned, approve, reject };
+module.exports = { apply, listMine, listAssigned, approve, reject, debugRecent, statsMentor };

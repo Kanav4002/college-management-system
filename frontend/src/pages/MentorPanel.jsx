@@ -1,24 +1,17 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
 import AppShell from "../components/AppShell";
 import ComplaintDetailModal from "../components/ComplaintDetailModal";
 import api from "../api/api";
 
 /* ── Style maps ───────────────────────────────────────────────── */
 const statusStyles = {
-  PENDING:  "bg-yellow-100 text-yellow-700",
-  APPROVED: "bg-green-100 text-green-700",
-  REJECTED: "bg-red-100 text-red-700",
-  ASSIGNED: "bg-indigo-100 text-indigo-700",
-  RESOLVED: "bg-green-100 text-green-700",
-  CLOSED:   "bg-gray-200 text-gray-600",
-};
-
-const priorityStyles = {
-  LOW:    "bg-gray-100 text-gray-600",
-  MEDIUM: "bg-orange-100 text-orange-600",
-  HIGH:   "bg-red-100 text-red-600",
+  PENDING:  { bg: "color-mix(in srgb, #eab308 15%, transparent)", text: "#b45309", border: "#eab308" },
+  APPROVED: { bg: "color-mix(in srgb, var(--primary) 15%, transparent)", text: "var(--primary)", border: "var(--primary)" },
+  REJECTED: { bg: "color-mix(in srgb, var(--error) 15%, transparent)", text: "var(--error)", border: "var(--error)" },
+  ASSIGNED: { bg: "color-mix(in srgb, #6366f1 15%, transparent)", text: "#4338ca", border: "#6366f1" },
+  RESOLVED: { bg: "color-mix(in srgb, #16a34a 15%, transparent)", text: "#15803d", border: "#16a34a" },
+  CLOSED:   { bg: "var(--surface-container-high)", text: "var(--on-surface-variant)", border: "var(--outline)" },
 };
 
 const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
@@ -26,7 +19,7 @@ const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
 /* ── Horizontal bar chart ─────────────────────────────────────── */
 function HorizontalBarChart({ data }) {
   if (!data || Object.keys(data).length === 0) {
-    return <p className="text-sm italic" style={{ color: "var(--text-muted)" }}>No data yet</p>;
+    return <p className="text-sm italic" style={{ color: "var(--on-surface-variant)" }}>No data yet</p>;
   }
   const entries = Object.entries(data);
   const max = Math.max(...entries.map(([, v]) => v), 1);
@@ -36,11 +29,11 @@ function HorizontalBarChart({ data }) {
       {entries.map(([label, count]) => (
         <div key={label}>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>{label}</span>
-            <span className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{count}</span>
+            <span className="text-sm font-medium" style={{ color: "var(--on-surface)" }}>{label}</span>
+            <span className="text-sm font-bold" style={{ color: "var(--on-surface)" }}>{count}</span>
           </div>
-          <div className="w-full h-3 rounded-full overflow-hidden" style={{ background: "var(--chart-track)" }}>
-            <div className="h-full rounded-full bg-(--accent) transition-all" style={{ width: `${(count / max) * 100}%` }} />
+          <div className="w-full h-3 rounded-full overflow-hidden" style={{ background: "var(--outline-variant)" }}>
+            <div className="h-full rounded-full transition-all" style={{ width: `${(count / max) * 100}%`, background: "var(--primary)" }} />
           </div>
         </div>
       ))}
@@ -48,72 +41,72 @@ function HorizontalBarChart({ data }) {
   );
 }
 
-/* ── Card helper with glassmorphism ──────────────────────── */
+/* ── Card helper ──────────────────────── */
 function Card({ children, className = "" }) {
   return (
-    <div className={`glass-card ${className}`}>
+    <div className={`card ${className}`}>
       {children}
     </div>
   );
 }
 
-/* ── Clickable Complaint Row (opens modal) ────────────────────── */
+/* ── Clickable Complaint Row ────────────────────── */
 function ComplaintRow({ complaint: c, onClick, showStudent = false }) {
+  const status = statusStyles[c.status] || statusStyles.CLOSED;
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer glass-card transition-all duration-200 hover:scale-102"
+      className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer transition-all duration-200 hover:bg-[--surface-container-low] rounded-lg"
+      style={{ borderBottom: "1px solid var(--outline-variant)" }}
     >
-      <span className="text-xs font-mono shrink-0" style={{ color: "var(--text-muted)" }} title={c.id}>#{String(c.id).slice(-6)}</span>
+      <span className="text-xs font-mono shrink-0" style={{ color: "var(--on-surface-variant)" }} title={c.id}>#{String(c.id).slice(-6)}</span>
 
       <span
         className="w-2.5 h-2.5 rounded-full shrink-0"
         title={c.priority}
-        style={{ background: c.priority === "HIGH" ? "#ef4444" : c.priority === "MEDIUM" ? "#f59e0b" : "#9ca3af" }}
+        style={{ background: c.priority === "HIGH" ? "var(--error)" : c.priority === "MEDIUM" ? "#f59e0b" : "var(--outline)" }}
       />
 
-      <span className="flex-1 font-medium text-sm truncate" style={{ color: "var(--text-primary)" }}>
+      <span className="flex-1 font-medium text-sm truncate" style={{ color: "var(--on-surface)" }}>
         {c.title}
       </span>
 
       {showStudent && (
-        <span className="hidden sm:inline text-xs shrink-0 max-w-30 truncate" style={{ color: "var(--text-secondary)" }}>
+        <span className="hidden sm:inline text-xs shrink-0 max-w-30 truncate" style={{ color: "var(--on-surface-variant)" }}>
           {c.studentName}
         </span>
       )}
 
-      <span className="hidden md:inline-block px-2 py-0.5 rounded-md text-[11px] font-medium shrink-0" style={{ background: "var(--bg-input)", color: "var(--text-secondary)" }}>
+      <span className="hidden md:inline-block px-2 py-0.5 rounded-md text-[11px] font-medium shrink-0" style={{ background: "var(--surface-container-low)", color: "var(--on-surface-variant)" }}>
         {c.issueType || c.category}
       </span>
 
-      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap shrink-0 ${statusStyles[c.status]}`}>
+      <span
+        className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap shrink-0"
+        style={{ background: status.bg, color: status.text }}
+      >
         {c.status}
       </span>
 
       {c.assignedDepartment && !showStudent && (
-        <span className="hidden lg:inline text-[11px] font-medium shrink-0 px-2 py-0.5 rounded-md" style={{ background: "var(--bg-input)", color: "var(--accent, var(--text-secondary))" }}>
+        <span className="hidden lg:inline text-[11px] font-medium shrink-0 px-2 py-0.5 rounded-md" style={{ background: "var(--surface-container-low)", color: "var(--primary)" }}>
           {c.assignedDepartment}
         </span>
       )}
 
-      <span className="hidden lg:inline text-[11px] shrink-0 w-20 text-right" style={{ color: "var(--text-muted)" }}>
+      <span className="hidden lg:inline text-[11px] shrink-0 w-20 text-right" style={{ color: "var(--on-surface-variant)" }}>
         {new Date(c.createdAt).toLocaleDateString()}
       </span>
 
-      <svg
-        className="w-4 h-4 shrink-0"
-        style={{ color: "var(--text-muted)" }}
-        fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
-      >
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-      </svg>
+      <span className="material-symbols-outlined text-lg shrink-0" style={{ color: "var(--on-surface-variant)" }}>
+        chevron_right
+      </span>
     </button>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════════ */
 function MentorPanel() {
-  const { auth } = useAuth();
   const [tab, setTab] = useState("review");
   const [complaints, setComplaints] = useState([]);
   const [myComplaints, setMyComplaints] = useState([]);
@@ -123,7 +116,6 @@ function MentorPanel() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  /* Search / sort / filter — separate for each tab */
   const [reviewSearch, setReviewSearch] = useState("");
   const [reviewSort, setReviewSort] = useState("newest");
   const [reviewFilter, setReviewFilter] = useState("ALL");
@@ -133,7 +125,17 @@ function MentorPanel() {
   const [myFilter, setMyFilter] = useState("ALL");
 
   const [selectedComplaint, setSelectedComplaint] = useState(null);
-  const [modalRole, setModalRole] = useState("MENTOR"); // MENTOR for review tab, view-only for "my" tab
+  const [modalRole, setModalRole] = useState("MENTOR");
+
+  // Leave management state
+  const [leaveRequests, setLeaveRequests] = useState([]);
+  const [leaveLoading, setLeaveLoading] = useState(true);
+  const [leaveStats, setLeaveStats] = useState(null);
+  const [leaveActionId, setLeaveActionId] = useState(null);
+  const [leaveError, setLeaveError] = useState("");
+  const [leaveSuccess, setLeaveSuccess] = useState("");
+  const [leaveSearch, setLeaveSearch] = useState("");
+  const [leaveFilter, setLeaveFilter] = useState("ALL");
 
   const fetchData = useCallback(async () => {
     try {
@@ -152,7 +154,46 @@ function MentorPanel() {
     }
   }, []);
 
+  const fetchLeaveRequests = useCallback(async () => {
+    try {
+      const res = await api.get("/leaves/assigned");
+      const list = Array.isArray(res.data) ? res.data : res.data?.data || [];
+      setLeaveRequests(list);
+    } catch (err) {
+      setLeaveRequests([]);
+      setLeaveError(err.response?.data?.message || "Failed to load leave requests.");
+    } finally {
+      setLeaveLoading(false);
+    }
+  }, []);
+
+  const fetchLeaveStats = useCallback(async () => {
+    try {
+      const res = await api.get("/leaves/stats/mentor");
+      setLeaveStats(res.data);
+    } catch {
+      setLeaveStats(null);
+    }
+  }, []);
+
   useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { fetchLeaveRequests(); fetchLeaveStats(); }, [fetchLeaveRequests, fetchLeaveStats]);
+
+  // Poll for complaints periodically so mentors see newly-submitted student complaints.
+  useEffect(() => {
+    const id = setInterval(() => fetchData(), 6000);
+    return () => clearInterval(id);
+  }, [fetchData]);
+
+  // Poll leave requests as well so student submissions show up without
+  // requiring the mentor to reload the page.
+  useEffect(() => {
+    const id = setInterval(() => {
+      fetchLeaveRequests();
+      fetchLeaveStats();
+    }, 6000);
+    return () => clearInterval(id);
+  }, [fetchLeaveRequests, fetchLeaveStats]);
 
   const act = async (id, action) => {
     setError(""); setSuccess(""); setActionId(id);
@@ -170,7 +211,19 @@ function MentorPanel() {
     } finally { setActionId(null); }
   };
 
-  /* ── Review tab computed ──────────────────────────────────── */
+  const actLeave = async (id, action) => {
+    setLeaveError(""); setLeaveSuccess(""); setLeaveActionId(id);
+    try {
+      await api.put(`/leaves/${id}/${action}`);
+      setLeaveRequests((prev) => prev.filter((l) => (l._id || l.id) !== id));
+      setLeaveSuccess(`Leave request ${action}ed successfully.`);
+      setTimeout(() => setLeaveSuccess(""), 4000);
+      fetchLeaveStats();
+    } catch (err) {
+      setLeaveError(err.response?.data?.message || `Failed to ${action} leave request.`);
+    } finally { setLeaveActionId(null); }
+  };
+
   const reviewCounts = {
     ALL: complaints.length,
     PENDING: complaints.filter((c) => c.status === "PENDING").length,
@@ -205,7 +258,6 @@ function MentorPanel() {
     return list;
   }, [complaints, reviewFilter, reviewSearch, reviewSort]);
 
-  /* ── My tab computed ──────────────────────────────────────── */
   const myCounts = {
     ALL: myComplaints.length,
     ASSIGNED: myComplaints.filter((c) => c.status === "ASSIGNED").length,
@@ -239,48 +291,41 @@ function MentorPanel() {
   }, [myComplaints, myFilter, mySearch, mySort]);
 
   const statCards = [
-    { label: "Total Assigned", value: stats?.total ?? "–", iconBg: "var(--accent)",
-      icon: <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg> },
-    { label: "Pending Review", value: stats?.pending ?? "–", iconBg: "#eab308",
-      icon: <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
-    { label: "Approved", value: stats?.approved ?? "–", iconBg: "#22c55e",
-      icon: <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
-    { label: "Rejected", value: stats?.rejected ?? "–", iconBg: "#ef4444",
-      icon: <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+    { label: "Total Assigned", value: stats?.total ?? "–", iconBg: "var(--primary)", icon: "groups" },
+    { label: "Pending Review", value: stats?.pending ?? "–", iconBg: "#eab308", icon: "pending_actions" },
+    { label: "Approved", value: stats?.approved ?? "–", iconBg: "#16a34a", icon: "check_circle" },
+    { label: "Rejected", value: stats?.rejected ?? "–", iconBg: "var(--error)", icon: "cancel" },
   ];
 
-  /* ── Reusable search + sort + filter toolbar ────────────── */
   function Toolbar({ search, onSearch, sort, onSort, filter, onFilter, counts, filterKeys, total, visibleCount }) {
     return (
       <div className="px-5 pt-5 pb-4 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+          <h2 className="text-lg font-semibold" style={{ color: "var(--on-surface)" }}>
             {tab === "review" ? "Assigned Complaints" : "My Submitted Complaints"}
-            <span className="text-sm font-normal ml-2" style={{ color: "var(--text-muted)" }}>
+            <span className="text-sm font-normal ml-2" style={{ color: "var(--on-surface-variant)" }}>
               {visibleCount} of {total}
             </span>
           </h2>
 
           <div className="flex items-center gap-3">
             <div className="relative">
-              <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-lg" style={{ color: "var(--on-surface-variant)" }}>search</span>
               <input
                 type="text"
                 value={search}
                 onChange={(e) => onSearch(e.target.value)}
                 placeholder="Search complaints…"
-                className="text-sm py-2 pl-9 pr-3 rounded-lg w-56 outline-none focus:ring-2 focus:ring-(--accent)/30 transition"
-                style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                className="text-sm py-2 pl-10 pr-3 rounded-lg w-56 outline-none"
+                style={{ background: "var(--surface-container-low)", border: "1px solid var(--outline-variant)", color: "var(--on-surface)" }}
               />
             </div>
 
             <select
               value={sort}
               onChange={(e) => onSort(e.target.value)}
-              className="text-sm py-2 px-3 rounded-lg outline-none cursor-pointer focus:ring-2 focus:ring-(--accent)/30 transition"
-              style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+              className="text-sm py-2 px-3 rounded-lg outline-none cursor-pointer"
+              style={{ background: "var(--surface-container-low)", border: "1px solid var(--outline-variant)", color: "var(--on-surface)" }}
             >
               <option value="newest">Newest first</option>
               <option value="oldest">Oldest first</option>
@@ -295,8 +340,8 @@ function MentorPanel() {
             <button
               key={f}
               onClick={() => onFilter(f)}
-              className={`px-3 py-1 text-xs rounded-full font-medium transition cursor-pointer ${filter === f ? "bg-(--accent) text-white" : ""}`}
-              style={filter !== f ? { background: "var(--bg-input)", color: "var(--text-secondary)" } : {}}
+              className="px-3 py-1 text-xs rounded-full font-medium transition cursor-pointer"
+              style={filter === f ? { background: "var(--primary-container)", color: "var(--on-primary-container)" } : { background: "var(--surface-container-low)", color: "var(--on-surface-variant)" }}
             >
               {f} ({counts[f] ?? 0})
             </button>
@@ -306,14 +351,11 @@ function MentorPanel() {
     );
   }
 
-  /* ── Empty / Loading states ──────────────────────────────── */
   function EmptyState({ searchTerm, message }) {
     return (
       <div className="text-center py-12">
-        <svg className="w-12 h-12 mx-auto mb-3" style={{ color: "var(--text-muted)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-        <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+        <span className="material-symbols-outlined text-5xl block mb-3" style={{ color: "var(--on-surface-variant)" }}>search_off</span>
+        <p className="text-sm" style={{ color: "var(--on-surface-variant)" }}>
           {searchTerm ? `No complaints matching "${searchTerm}"` : message}
         </p>
       </div>
@@ -322,11 +364,8 @@ function MentorPanel() {
 
   function LoadingState() {
     return (
-      <div className="flex items-center justify-center py-12 gap-3" style={{ color: "var(--text-muted)" }}>
-        <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-        </svg>
+      <div className="flex items-center justify-center py-12 gap-3" style={{ color: "var(--on-surface-variant)" }}>
+        <span className="material-symbols-outlined animate-spin">progress_activity</span>
         <span className="text-sm">Loading complaints…</span>
       </div>
     );
@@ -338,14 +377,14 @@ function MentorPanel() {
         {/* Stat Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {statCards.map((card) => (
-            <div key={card.label} className="rounded-xl p-5 shadow-sm" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+            <div key={card.label} className="rounded-xl p-5 shadow-sm" style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)" }}>
               <div className="flex items-center gap-3">
                 <div className="h-12 w-12 rounded-full flex items-center justify-center shrink-0" style={{ background: card.iconBg }}>
-                  {card.icon}
+                  <span className="material-symbols-outlined text-xl text-white">{card.icon}</span>
                 </div>
                 <div>
-                  <p className="text-sm" style={{ color: "var(--text-secondary)" }}>{card.label}</p>
-                  <p className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>{card.value}</p>
+                  <p className="text-sm" style={{ color: "var(--on-surface-variant)" }}>{card.label}</p>
+                  <p className="text-2xl font-bold" style={{ color: "var(--on-surface)" }}>{card.value}</p>
                 </div>
               </div>
             </div>
@@ -354,24 +393,20 @@ function MentorPanel() {
 
         {/* Category Breakdown */}
         <Card>
-          <h2 className="text-lg font-semibold mb-4" style={{ color: "var(--text-primary)" }}>Handled Complaints by Category</h2>
+          <h2 className="text-lg font-semibold mb-4" style={{ color: "var(--on-surface)" }}>Handled Complaints by Category</h2>
           <HorizontalBarChart data={stats?.byCategory} />
         </Card>
 
         {/* Alerts */}
         {success && (
-          <div className="flex items-center gap-2 bg-green-50 border border-green-300 text-green-700 px-4 py-3 rounded-xl text-sm">
-            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+          <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm" style={{ background: "color-mix(in srgb, #16a34a 10%, transparent)", border: "1px solid #16a34a", color: "#15803d" }}>
+            <span className="material-symbols-outlined">check_circle</span>
             {success}
           </div>
         )}
         {error && (
-          <div className="flex items-center gap-2 bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-xl text-sm">
-            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
+          <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm" style={{ background: "color-mix(in srgb, var(--error) 10%, transparent)", border: "1px solid var(--error)", color: "var(--error)" }}>
+            <span className="material-symbols-outlined">error</span>
             {error}
           </div>
         )}
@@ -381,33 +416,38 @@ function MentorPanel() {
           <div className="flex gap-2">
             <button
               onClick={() => setTab("review")}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition cursor-pointer ${tab === "review" ? "bg-(--accent) text-white" : ""}`}
-              style={tab !== "review" ? { background: "var(--bg-input)", color: "var(--text-secondary)" } : {}}
+              className="px-4 py-2 text-sm font-medium rounded-lg transition cursor-pointer"
+              style={tab === "review" ? { background: "var(--primary-container)", color: "var(--on-primary-container)" } : { background: "var(--surface-container-low)", color: "var(--on-surface-variant)" }}
             >
-              Student Complaints ({complaints.length})
+              Complaints ({complaints.length})
+            </button>
+            <button
+              onClick={() => setTab("leaves")}
+              className="px-4 py-2 text-sm font-medium rounded-lg transition cursor-pointer"
+              style={tab === "leaves" ? { background: "var(--primary-container)", color: "var(--on-primary-container)" } : { background: "var(--surface-container-low)", color: "var(--on-surface-variant)" }}
+            >
+              Leave Requests ({leaveRequests.length})
             </button>
             <button
               onClick={() => setTab("my")}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition cursor-pointer ${tab === "my" ? "bg-(--accent) text-white" : ""}`}
-              style={tab !== "my" ? { background: "var(--bg-input)", color: "var(--text-secondary)" } : {}}
+              className="px-4 py-2 text-sm font-medium rounded-lg transition cursor-pointer"
+              style={tab === "my" ? { background: "var(--primary-container)", color: "var(--on-primary-container)" } : { background: "var(--surface-container-low)", color: "var(--on-surface-variant)" }}
             >
               My Complaints ({myComplaints.length})
             </button>
           </div>
           <Link
             to="/submit-complaint"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-(--accent) text-white text-sm font-semibold rounded-lg hover:opacity-90 transition shadow-sm"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition hover:opacity-90"
+            style={{ background: "var(--primary-container)", color: "var(--on-primary-container)" }}
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
+            <span className="material-symbols-outlined text-base">add</span>
             Submit Complaint
           </Link>
         </div>
 
-        {/* ── Tab: Student Complaints (review) ─────────────────── */}
         {tab === "review" && (
-          <div className="rounded-xl shadow-sm" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+          <div className="rounded-xl shadow-sm" style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)" }}>
             <Toolbar
               search={reviewSearch} onSearch={setReviewSearch}
               sort={reviewSort} onSort={setReviewSort}
@@ -435,9 +475,189 @@ function MentorPanel() {
           </div>
         )}
 
-        {/* ── Tab: My Complaints (mentor's own submissions) ──── */}
+        {tab === "leaves" && (
+          <>
+            {/* Leave Stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="rounded-xl p-5" style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)" }}>
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-full flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--error) 20%, transparent)" }}>
+                    <span className="material-symbols-outlined text-xl" style={{ color: "var(--error)" }}>pending_actions</span>
+                  </div>
+                  <div>
+                    <p className="text-sm" style={{ color: "var(--on-surface-variant)" }}>Pending Requests</p>
+                    <p className="text-2xl font-bold" style={{ color: "var(--on-surface)" }}>{leaveStats?.pending ?? leaveRequests.length}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-xl p-5" style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)" }}>
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-full flex items-center justify-center" style={{ background: "color-mix(in srgb, #4ade80 20%, transparent)" }}>
+                    <span className="material-symbols-outlined text-xl" style={{ color: "#4ade80" }}>check_circle</span>
+                  </div>
+                  <div>
+                    <p className="text-sm" style={{ color: "var(--on-surface-variant)" }}>Approved Today</p>
+                    <p className="text-2xl font-bold" style={{ color: "var(--on-surface)" }}>{leaveStats?.approvedToday ?? 0}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-xl p-5" style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)" }}>
+                <div className="flex items-center gap-3">
+                  <div className="h-12 w-12 rounded-full flex items-center justify-center" style={{ background: "color-mix(in srgb, var(--secondary) 20%, transparent)" }}>
+                    <span className="material-symbols-outlined text-xl" style={{ color: "var(--secondary)" }}>groups</span>
+                  </div>
+                  <div>
+                    <p className="text-sm" style={{ color: "var(--on-surface-variant)" }}>Students on Leave</p>
+                    <p className="text-2xl font-bold" style={{ color: "var(--on-surface)" }}>{leaveStats?.onLeave ?? 0}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Leave Alerts */}
+            {leaveSuccess && (
+              <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm" style={{ background: "color-mix(in srgb, #4ade80 10%, transparent)", border: "1px solid #4ade80", color: "#15803d" }}>
+                <span className="material-symbols-outlined">check_circle</span>
+                {leaveSuccess}
+              </div>
+            )}
+            {leaveError && (
+              <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm" style={{ background: "color-mix(in srgb, var(--error) 10%, transparent)", border: "1px solid var(--error)", color: "var(--error)" }}>
+                <span className="material-symbols-outlined">error</span>
+                {leaveError}
+              </div>
+            )}
+
+            {/* Leave Requests List */}
+            <div className="rounded-xl" style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)" }}>
+              <div className="px-5 pt-5 pb-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="text-lg font-semibold" style={{ color: "var(--on-surface)" }}>
+                    Leave Approval Queue
+                  </h2>
+                  <div className="flex gap-2">
+                    <div className="relative">
+                      <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-base" style={{ color: "var(--on-surface-variant)" }}>search</span>
+                      <input
+                        type="text"
+                        value={leaveSearch}
+                        onChange={(e) => setLeaveSearch(e.target.value)}
+                        placeholder="Search students..."
+                        className="text-sm py-2 pl-10 pr-3 rounded-lg outline-none"
+                        style={{ background: "var(--surface-container-low)", border: "1px solid var(--outline-variant)", color: "var(--on-surface)" }}
+                      />
+                    </div>
+                    <select
+                      value={leaveFilter}
+                      onChange={(e) => setLeaveFilter(e.target.value)}
+                      className="text-sm py-2 px-3 rounded-lg outline-none cursor-pointer"
+                      style={{ background: "var(--surface-container-low)", border: "1px solid var(--outline-variant)", color: "var(--on-surface)" }}
+                    >
+                      <option value="ALL">All Types</option>
+                      <option value="Medical">Medical</option>
+                      <option value="Personal">Personal</option>
+                      <option value="Duty Leave">Duty Leave</option>
+                      <option value="Academic">Academic</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-5 pb-5">
+                {leaveLoading ? (
+                  <div className="flex items-center justify-center py-12 gap-3" style={{ color: "var(--on-surface-variant)" }}>
+                    <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                    <span className="text-sm">Loading leave requests...</span>
+                  </div>
+                ) : leaveRequests.length === 0 ? (
+                  <div className="text-center py-12">
+                    <span className="material-symbols-outlined text-5xl block mb-3" style={{ color: "var(--on-surface-variant)" }}>calendar_today</span>
+                    <p className="text-sm" style={{ color: "var(--on-surface-variant)" }}>
+                      No pending leave requests to review.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {leaveRequests
+                      .filter(l => {
+                        const matchesSearch = !leaveSearch ||
+                          l.studentName?.toLowerCase().includes(leaveSearch.toLowerCase()) ||
+                          l.type?.toLowerCase().includes(leaveSearch.toLowerCase()) ||
+                          l.leaveType?.toLowerCase().includes(leaveSearch.toLowerCase()) ||
+                          l.reason?.toLowerCase().includes(leaveSearch.toLowerCase());
+                        const matchesFilter = leaveFilter === "ALL" || l.type === leaveFilter || l.leaveType === leaveFilter;
+                        return matchesSearch && matchesFilter;
+                      })
+                      .map((leave) => (
+                        <div
+                          key={leave._id || leave.id}
+                          className="rounded-xl p-4 md:p-6 transition-colors"
+                          style={{ background: "var(--surface-container-low)", border: "1px solid var(--outline-variant)" }}
+                        >
+                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div className="flex items-start gap-4 flex-1">
+                              <div className="w-12 h-12 rounded-full shrink-0" style={{ background: "var(--surface-container-high)" }}>
+                                <span className="flex items-center justify-center h-full text-sm font-bold" style={{ color: "var(--on-surface-variant)" }}>
+                                  {leave.studentName?.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "?"}
+                                </span>
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2 flex-wrap mb-1">
+                                  <h4 className="font-semibold" style={{ color: "var(--on-surface)" }}>
+                                    {leave.studentName || "Student"}
+                                  </h4>
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase" style={{ background: "color-mix(in srgb, var(--error) 15%, transparent)", color: "var(--error)" }}>
+                                    {leave.urgency || "Normal"}
+                                  </span>
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-medium" style={{ background: "var(--surface-container-high)", color: "var(--on-surface-variant)" }}>
+                                    {leave.type || leave.leaveType}
+                                  </span>
+                                </div>
+                                <p className="text-sm" style={{ color: "var(--on-surface-variant)" }}>
+                                  <span className="material-symbols-outlined text-base mr-1">schedule</span>
+                                  {new Date(leave.from || leave.startDate).toLocaleDateString()} - {new Date(leave.to || leave.endDate).toLocaleDateString()} ({leave.days || leave.duration} Days)
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                              <button
+                                onClick={() => actLeave(leave._id || leave.id, "approve")}
+                                disabled={leaveActionId === (leave._id || leave.id)}
+                                className="px-4 py-2 rounded-xl text-sm font-medium transition disabled:opacity-50"
+                                style={{ background: "var(--primary)", color: "var(--on-primary)" }}
+                              >
+                                {leaveActionId === (leave._id || leave.id) ? "..." : "Approve"}
+                              </button>
+                              <button
+                                onClick={() => actLeave(leave._id || leave.id, "reject")}
+                                disabled={leaveActionId === (leave._id || leave.id)}
+                                className="px-4 py-2 rounded-xl text-sm font-medium transition disabled:opacity-50"
+                                style={{ background: "var(--surface-container-high)", border: "1px solid var(--outline-variant)", color: "var(--on-surface)" }}
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          </div>
+
+                          {leave.reason && (
+                            <div className="mt-3 pt-3" style={{ borderTop: "1px solid var(--outline-variant)" }}>
+                              <p className="text-sm" style={{ color: "var(--on-surface-variant)" }}>
+                                <strong>Reason:</strong> {leave.reason}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        )}
+
         {tab === "my" && (
-          <div className="rounded-xl shadow-sm" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
+          <div className="rounded-xl shadow-sm" style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)" }}>
             <Toolbar
               search={mySearch} onSearch={setMySearch}
               sort={mySort} onSort={setMySort}
@@ -450,7 +670,7 @@ function MentorPanel() {
               {loading ? <LoadingState /> : visibleMy.length === 0 ? (
                 <EmptyState
                   searchTerm={mySearch}
-                  message={<>You haven&apos;t submitted any complaints yet. <Link to="/submit-complaint" className="text-(--accent) hover:underline">Submit one now →</Link></>}
+                  message={<>You haven't submitted any complaints yet. <Link to="/submit-complaint" style={{ color: "var(--primary)" }}>Submit one now →</Link></>}
                 />
               ) : (
                 <div className="space-y-2">
@@ -468,7 +688,6 @@ function MentorPanel() {
         )}
       </main>
 
-      {/* Complaint Detail Modal */}
       {selectedComplaint && (
         <ComplaintDetailModal
           complaint={selectedComplaint}

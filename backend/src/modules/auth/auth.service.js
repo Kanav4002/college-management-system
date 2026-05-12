@@ -208,6 +208,12 @@ async function forgotPassword({ email }) {
     // Pass along whether this was a Google-backed account so email
     // transports can customize messaging if desired.
     await sendPasswordResetEmail({ to: user.email, resetUrl, isGoogle: user.authProvider === 'GOOGLE' });
+    // In development, return the resetUrl so the frontend can show it
+    // (useful when no SMTP transport is configured). Do NOT expose this
+    // in production.
+    if (env.NODE_ENV !== 'production') {
+      return { message: 'If an account with that email exists, a reset link has been sent.', resetUrl };
+    }
   }
 
   return 'If an account with that email exists, a reset link has been sent.';

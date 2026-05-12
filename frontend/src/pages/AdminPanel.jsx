@@ -1,24 +1,17 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
 import AppShell from "../components/AppShell";
 import ComplaintDetailModal from "../components/ComplaintDetailModal";
 import api from "../api/api";
 
 /* ── Status / Priority style maps ─────────────────────────────── */
 const statusStyles = {
-  PENDING:  "bg-yellow-100 text-yellow-700",
-  APPROVED: "bg-blue-100 text-blue-700",
-  REJECTED: "bg-red-100 text-red-700",
-  ASSIGNED: "bg-indigo-100 text-indigo-700",
-  RESOLVED: "bg-green-100 text-green-700",
-  CLOSED:   "bg-gray-200 text-gray-600",
-};
-
-const priorityStyles = {
-  LOW:    "bg-gray-100 text-gray-600",
-  MEDIUM: "bg-orange-100 text-orange-600",
-  HIGH:   "bg-red-100 text-red-600",
+  PENDING:  { bg: "color-mix(in srgb, #eab308 15%, transparent)", text: "#b45309", border: "#eab308" },
+  APPROVED: { bg: "color-mix(in srgb, var(--primary) 15%, transparent)", text: "var(--primary)", border: "var(--primary)" },
+  REJECTED: { bg: "color-mix(in srgb, var(--error) 15%, transparent)", text: "var(--error)", border: "var(--error)" },
+  ASSIGNED: { bg: "color-mix(in srgb, #6366f1 15%, transparent)", text: "#4338ca", border: "#6366f1" },
+  RESOLVED: { bg: "color-mix(in srgb, #16a34a 15%, transparent)", text: "#15803d", border: "#16a34a" },
+  CLOSED:   { bg: "var(--surface-container-high)", text: "var(--on-surface-variant)", border: "var(--outline)" },
 };
 
 const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
@@ -28,7 +21,7 @@ const DONUT_COLORS = ["#3B82F6", "#22C55E", "#F59E0B", "#6366F1", "#EF4444", "#0
 
 function IssueTypeDonut({ data }) {
   if (!data || Object.keys(data).length === 0) {
-    return <p className="text-sm italic" style={{ color: "var(--text-muted)" }}>No data yet</p>;
+    return <p className="text-sm italic" style={{ color: "var(--on-surface-variant)" }}>No data yet</p>;
   }
   const entries = Object.entries(data);
   const total = entries.reduce((s, [, v]) => s + v, 0) || 1;
@@ -53,7 +46,7 @@ function IssueTypeDonut({ data }) {
       />
       <div className="space-y-2">
         {entries.map(([label, count], i) => (
-          <div key={label} className="flex items-center gap-2 text-sm" style={{ color: "var(--text-primary)" }}>
+          <div key={label} className="flex items-center gap-2 text-sm" style={{ color: "var(--on-surface)" }}>
             <span className="inline-block h-3 w-3 rounded-full shrink-0" style={{ background: DONUT_COLORS[i % DONUT_COLORS.length] }} />
             <span>{label} ({Math.round((count / total) * 100)}%)</span>
           </div>
@@ -66,7 +59,7 @@ function IssueTypeDonut({ data }) {
 /* ── Horizontal bar chart (Complaints by Building) ────────────── */
 function BuildingBarChart({ data }) {
   if (!data || Object.keys(data).length === 0) {
-    return <p className="text-sm italic" style={{ color: "var(--text-muted)" }}>No data yet</p>;
+    return <p className="text-sm italic" style={{ color: "var(--on-surface-variant)" }}>No data yet</p>;
   }
   const entries = Object.entries(data).sort((a, b) => b[1] - a[1]);
   const max = Math.max(...entries.map(([, v]) => v), 1);
@@ -75,11 +68,11 @@ function BuildingBarChart({ data }) {
     <div className="space-y-3">
       {entries.map(([label, count]) => (
         <div key={label} className="flex items-center gap-3">
-          <span className="w-32 text-xs font-medium text-right shrink-0 truncate" style={{ color: "var(--text-primary)" }} title={label}>{label}</span>
-          <div className="flex-1 h-6 rounded-md overflow-hidden relative" style={{ background: "var(--chart-track)" }}>
+          <span className="w-32 text-xs font-medium text-right shrink-0 truncate" style={{ color: "var(--on-surface)" }} title={label}>{label}</span>
+          <div className="flex-1 h-6 rounded-md overflow-hidden relative" style={{ background: "var(--outline-variant)" }}>
             <div
-              className="h-full rounded-md bg-(--accent) transition-all flex items-center justify-end pr-2"
-              style={{ width: `${Math.max((count / max) * 100, 14)}%` }}
+              className="h-full rounded-md transition-all flex items-center justify-end pr-2"
+              style={{ width: `${Math.max((count / max) * 100, 14)}%`, background: "var(--primary)" }}
             >
               <span className="text-[11px] font-bold text-white">{count}</span>
             </div>
@@ -125,26 +118,26 @@ function ActivityLineChart({ complaints }) {
       <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-40">
         {[0, 0.25, 0.5, 0.75, 1].map((frac) => {
           const y = h - padY - frac * (h - 2 * padY);
-          return <line key={frac} x1={padX} y1={y} x2={w - padX} y2={y} stroke="var(--chart-track)" strokeWidth="1" />;
+          return <line key={frac} x1={padX} y1={y} x2={w - padX} y2={y} stroke="var(--outline-variant)" strokeWidth="1" />;
         })}
-        <polyline fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" points={points} />
+        <polyline fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" points={points} />
         {counts.map((v, i) => {
           const x = padX + i * stepX;
           const y = h - padY - ((v / max) * (h - 2 * padY));
-          return <circle key={i} cx={x} cy={y} r="4" fill="var(--accent)" />;
+          return <circle key={i} cx={x} cy={y} r="4" fill="var(--primary)" />;
         })}
       </svg>
-      <div className="flex justify-between text-xs px-2 -mt-1" style={{ color: "var(--text-muted)" }}>
+      <div className="flex justify-between text-xs px-2 -mt-1" style={{ color: "var(--on-surface-variant)" }}>
         {labels.map((l) => <span key={l}>{l}</span>)}
       </div>
     </div>
   );
 }
 
-/* ── Card wrapper with glassmorphism ─────────────────────── */
+/* ── Card wrapper ─────────────────────── */
 function Card({ children, className = "" }) {
   return (
-    <div className={`glass-card ${className}`}>
+    <div className={`card ${className}`}>
       {children}
     </div>
   );
@@ -152,66 +145,55 @@ function Card({ children, className = "" }) {
 
 /* ── Clickable Complaint Row (opens modal) ────────────────────── */
 function ComplaintRow({ complaint: c, onClick }) {
+  const status = statusStyles[c.status] || statusStyles.CLOSED;
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer glass-card transition-all duration-200 hover:scale-102"
+      className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer transition-all duration-200 hover:bg-[--surface-container-low] rounded-lg"
+      style={{ borderBottom: "1px solid var(--outline-variant)" }}
     >
-      {/* ID */}
-      <span className="text-xs font-mono shrink-0" style={{ color: "var(--text-muted)" }} title={c.id}>#{String(c.id).slice(-6)}</span>
+      <span className="text-xs font-mono shrink-0" style={{ color: "var(--on-surface-variant)" }} title={c.id}>#{String(c.id).slice(-6)}</span>
 
-      {/* Priority dot */}
       <span
         className="w-2.5 h-2.5 rounded-full shrink-0"
         title={c.priority}
         style={{
-          background: c.priority === "HIGH" ? "#ef4444" : c.priority === "MEDIUM" ? "#f59e0b" : "#9ca3af",
+          background: c.priority === "HIGH" ? "var(--error)" : c.priority === "MEDIUM" ? "#f59e0b" : "var(--outline)",
         }}
       />
 
-      {/* Title */}
-      <span className="flex-1 font-medium text-sm truncate" style={{ color: "var(--text-primary)" }}>
+      <span className="flex-1 font-medium text-sm truncate" style={{ color: "var(--on-surface)" }}>
         {c.title}
       </span>
 
-      {/* Submitter */}
-      <span className="hidden sm:inline text-xs shrink-0 max-w-30 truncate" style={{ color: "var(--text-secondary)" }}>
+      <span className="hidden sm:inline text-xs shrink-0 max-w-30 truncate" style={{ color: "var(--on-surface-variant)" }}>
         {c.studentName}
       </span>
 
-      {/* Issue Type badge */}
-      <span className="hidden md:inline-block px-2 py-0.5 rounded-md text-[11px] font-medium shrink-0" style={{ background: "var(--bg-input)", color: "var(--text-secondary)" }}>
+      <span className="hidden md:inline-block px-2 py-0.5 rounded-md text-[11px] font-medium shrink-0" style={{ background: "var(--surface-container-low)", color: "var(--on-surface-variant)" }}>
         {c.issueType || c.category}
       </span>
 
-      {/* Status badge */}
-      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap shrink-0 ${statusStyles[c.status]}`}>
+      <span
+        className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap shrink-0"
+        style={{ background: status.bg, color: status.text }}
+      >
         {c.status}
       </span>
 
-      {/* Date */}
-      <span className="hidden lg:inline text-[11px] shrink-0 w-20 text-right" style={{ color: "var(--text-muted)" }}>
+      <span className="hidden lg:inline text-[11px] shrink-0 w-20 text-right" style={{ color: "var(--on-surface-variant)" }}>
         {new Date(c.createdAt).toLocaleDateString()}
       </span>
 
-      {/* View indicator arrow */}
-      <svg
-        className="w-4 h-4 shrink-0"
-        style={{ color: "var(--text-muted)" }}
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={2}
-      >
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-      </svg>
+      <span className="material-symbols-outlined text-lg shrink-0" style={{ color: "var(--on-surface-variant)" }}>
+        chevron_right
+      </span>
     </button>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════════ */
 function AdminPanel() {
-  const { auth } = useAuth();
   const [complaints, setComplaints] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -290,7 +272,6 @@ function AdminPanel() {
     CLOSED: complaints.filter((c) => c.status === "CLOSED").length,
   };
 
-  /* ── Filtered, searched, sorted complaints ──────────────────── */
   const visible = useMemo(() => {
     let list = filter === "ALL" ? [...complaints] : complaints.filter((c) => c.status === filter);
 
@@ -340,14 +321,10 @@ function AdminPanel() {
   });
 
   const statCards = [
-    { label: "Total Complaints", value: stats?.total ?? "–", borderColor: "var(--accent)",
-      icon: <svg className="w-5 h-5" style={{ color: "var(--accent)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg> },
-    { label: "Pending", value: stats?.pending ?? "–", borderColor: "#eab308",
-      icon: <svg className="w-5 h-5" style={{ color: "#eab308" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
-    { label: "Under Review", value: stats?.approved ?? "–", borderColor: "#ef4444",
-      icon: <svg className="w-5 h-5" style={{ color: "#ef4444" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg> },
-    { label: "Resolved", value: stats?.resolved ?? "–", borderColor: "#22c55e",
-      icon: <svg className="w-5 h-5" style={{ color: "#22c55e" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+    { label: "Total Complaints", value: stats?.total ?? "–", borderColor: "var(--primary)", icon: "description" },
+    { label: "Pending", value: stats?.pending ?? "–", borderColor: "#eab308", icon: "pending" },
+    { label: "Under Review", value: stats?.approved ?? "–", borderColor: "var(--error)", icon: "hourglass_empty" },
+    { label: "Resolved", value: stats?.resolved ?? "–", borderColor: "#16a34a", icon: "task_alt" },
   ];
 
   return (
@@ -360,16 +337,18 @@ function AdminPanel() {
               key={card.label}
               className="rounded-xl p-5 shadow-sm"
               style={{
-                background: "var(--bg-card)",
-                border: "1px solid var(--border)",
+                background: "var(--surface-container-lowest)",
+                border: "1px solid var(--outline-variant)",
                 borderTop: `4px solid ${card.borderColor}`,
               }}
             >
               <div className="flex items-center gap-2 mb-3">
-                {card.icon}
-                <span className="text-sm font-medium" style={{ color: "var(--text-secondary)" }}>{card.label}</span>
+                <span className="material-symbols-outlined text-xl" style={{ color: card.borderColor }}>
+                  {card.icon}
+                </span>
+                <span className="text-sm font-medium" style={{ color: "var(--on-surface-variant)" }}>{card.label}</span>
               </div>
-              <span className="text-4xl font-bold" style={{ color: "var(--text-primary)" }}>{card.value}</span>
+              <span className="text-4xl font-bold" style={{ color: "var(--on-surface)" }}>{card.value}</span>
             </div>
           ))}
         </div>
@@ -377,82 +356,71 @@ function AdminPanel() {
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <Card>
-            <h2 className="text-lg font-semibold mb-4" style={{ color: "var(--text-primary)" }}>Complaints by Issue Type</h2>
+            <h2 className="text-lg font-semibold mb-4" style={{ color: "var(--on-surface)" }}>Complaints by Issue Type</h2>
             <IssueTypeDonut data={stats?.byIssueType} />
           </Card>
           <Card>
-            <h2 className="text-lg font-semibold mb-4" style={{ color: "var(--text-primary)" }}>Complaints by Building</h2>
+            <h2 className="text-lg font-semibold mb-4" style={{ color: "var(--on-surface)" }}>Complaints by Building</h2>
             <BuildingBarChart data={stats?.byBuilding} />
           </Card>
           <Card>
-            <h2 className="text-lg font-semibold mb-4" style={{ color: "var(--text-primary)" }}>Complaint Activity Over Time</h2>
+            <h2 className="text-lg font-semibold mb-4" style={{ color: "var(--on-surface)" }}>Complaint Activity Over Time</h2>
             <ActivityLineChart complaints={complaints} />
           </Card>
         </div>
 
         {/* Alerts */}
         {success && (
-          <div className="flex items-center gap-2 bg-green-50 border border-green-300 text-green-700 px-4 py-3 rounded-xl text-sm">
-            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
+          <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm" style={{ background: "color-mix(in srgb, #16a34a 10%, transparent)", border: "1px solid #16a34a", color: "#15803d" }}>
+            <span className="material-symbols-outlined">check_circle</span>
             {success}
           </div>
         )}
         {error && (
-          <div className="flex items-center gap-2 bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-xl text-sm">
-            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
+          <div className="flex items-center gap-2 rounded-xl px-4 py-3 text-sm" style={{ background: "color-mix(in srgb, var(--error) 10%, transparent)", border: "1px solid var(--error)", color: "var(--error)" }}>
+            <span className="material-symbols-outlined">error</span>
             {error}
           </div>
         )}
 
-        {/* ═══ All Complaints ═══════════════════════════════════ */}
-        <div
-          className="rounded-xl shadow-sm"
-          style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
-        >
-          {/* Header with title, search, sort, filters */}
+        {/* All Complaints */}
+        <div className="rounded-xl shadow-sm" style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)" }}>
           <div className="px-5 pt-5 pb-4 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+                <h2 className="text-lg font-semibold" style={{ color: "var(--on-surface)" }}>
                   All Complaints
-                  <span className="text-sm font-normal ml-2" style={{ color: "var(--text-muted)" }}>
+                  <span className="text-sm font-normal ml-2" style={{ color: "var(--on-surface-variant)" }}>
                     {visible.length} of {complaints.length}
                   </span>
                 </h2>
                 <Link
                   to="/submit-complaint"
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-(--accent) text-white text-xs font-semibold rounded-lg hover:opacity-90 transition"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition hover:opacity-90"
+                  style={{ background: "var(--primary-container)", color: "var(--on-primary-container)" }}
                 >
-                  <span className="text-sm leading-none">+</span> New
+                  <span className="material-symbols-outlined text-base">add</span> New
                 </Link>
               </div>
 
               <div className="flex items-center gap-3">
-                {/* Search */}
                 <div className="relative">
-                  <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-lg" style={{ color: "var(--on-surface-variant)" }}>search</span>
                   <input
                     type="text"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search complaints…"
-                    className="text-sm py-2 pl-9 pr-3 rounded-lg w-56 outline-none focus:ring-2 focus:ring-(--accent)/30 transition"
-                    style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                    className="text-sm py-2 pl-10 pr-3 rounded-lg w-56 outline-none"
+                    style={{ background: "var(--surface-container-low)", border: "1px solid var(--outline-variant)", color: "var(--on-surface)" }}
                   />
                 </div>
 
-                {/* Sort */}
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="text-sm py-2 px-3 rounded-lg outline-none cursor-pointer focus:ring-2 focus:ring-(--accent)/30 transition"
-                  style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                  className="text-sm py-2 px-3 rounded-lg outline-none cursor-pointer"
+                  style={{ background: "var(--surface-container-low)", border: "1px solid var(--outline-variant)", color: "var(--on-surface)" }}
                 >
                   <option value="newest">Newest first</option>
                   <option value="oldest">Oldest first</option>
@@ -468,10 +436,8 @@ function AdminPanel() {
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
-                  className={`px-3 py-1 text-xs rounded-full font-medium transition cursor-pointer ${
-                    filter === f ? "bg-(--accent) text-white" : ""
-                  }`}
-                  style={filter !== f ? { background: "var(--bg-input)", color: "var(--text-secondary)" } : {}}
+                  className="px-3 py-1 text-xs rounded-full font-medium transition cursor-pointer"
+                  style={filter === f ? { background: "var(--primary-container)", color: "var(--on-primary-container)" } : { background: "var(--surface-container-low)", color: "var(--on-surface-variant)" }}
                 >
                   {f} ({counts[f]})
                 </button>
@@ -482,19 +448,14 @@ function AdminPanel() {
           {/* Complaint rows */}
           <div className="px-5 pb-5">
             {loading ? (
-              <div className="flex items-center justify-center py-12 gap-3" style={{ color: "var(--text-muted)" }}>
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
+              <div className="flex items-center justify-center py-12 gap-3" style={{ color: "var(--on-surface-variant)" }}>
+                <span className="material-symbols-outlined animate-spin">progress_activity</span>
                 <span className="text-sm">Loading complaints…</span>
               </div>
             ) : visible.length === 0 ? (
               <div className="text-center py-12">
-                <svg className="w-12 h-12 mx-auto mb-3" style={{ color: "var(--text-muted)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+                <span className="material-symbols-outlined text-5xl block mb-3" style={{ color: "var(--on-surface-variant)" }}>search_off</span>
+                <p className="text-sm" style={{ color: "var(--on-surface-variant)" }}>
                   {search ? `No complaints matching "${search}"` : "No complaints in this category."}
                 </p>
               </div>
@@ -514,28 +475,28 @@ function AdminPanel() {
 
         {/* System Activity */}
         <Card>
-          <h2 className="text-lg font-semibold mb-4" style={{ color: "var(--text-primary)" }}>System Activity</h2>
+          <h2 className="text-lg font-semibold mb-4" style={{ color: "var(--on-surface)" }}>System Activity</h2>
           {recentActivity.length === 0 ? (
-            <p className="text-sm" style={{ color: "var(--text-muted)" }}>No recent activity.</p>
+            <p className="text-sm" style={{ color: "var(--on-surface-variant)" }}>No recent activity.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
                 <thead>
-                  <tr style={{ borderBottom: "1px solid var(--border)" }}>
+                  <tr style={{ borderBottom: "1px solid var(--outline-variant)" }}>
                     {["Date", "User", "Action", "Details"].map((h) => (
-                      <th key={h} className="pb-3 pr-6 text-xs uppercase tracking-wide font-semibold" style={{ color: "var(--text-muted)" }}>{h}</th>
+                      <th key={h} className="pb-3 pr-6 text-xs uppercase tracking-wide font-medium" style={{ color: "var(--on-surface-variant)" }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {recentActivity.map((a, i) => (
-                    <tr key={i} style={{ borderBottom: "1px solid var(--border)" }}>
-                      <td className="py-3 pr-6 whitespace-nowrap" style={{ color: "var(--text-muted)" }}>
+                    <tr key={i} style={{ borderBottom: "1px solid var(--outline-variant)" }}>
+                      <td className="py-3 pr-6 whitespace-nowrap" style={{ color: "var(--on-surface-variant)" }}>
                         {new Date(a.date).toLocaleString(undefined, { year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" })}
                       </td>
-                      <td className="py-3 pr-6" style={{ color: "var(--text-primary)" }}>{a.user}</td>
-                      <td className="py-3 pr-6" style={{ color: "var(--text-secondary)" }}>{a.action}</td>
-                      <td className="py-3" style={{ color: "var(--text-secondary)" }}>{a.details}</td>
+                      <td className="py-3 pr-6" style={{ color: "var(--on-surface)" }}>{a.user}</td>
+                      <td className="py-3 pr-6" style={{ color: "var(--on-surface-variant)" }}>{a.action}</td>
+                      <td className="py-3" style={{ color: "var(--on-surface-variant)" }}>{a.details}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -545,7 +506,6 @@ function AdminPanel() {
         </Card>
       </main>
 
-      {/* Complaint Detail Modal */}
       {selectedComplaint && (
         <ComplaintDetailModal
           complaint={selectedComplaint}

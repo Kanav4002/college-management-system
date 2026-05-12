@@ -7,18 +7,12 @@ import api from "../api/api";
 
 /* ── Status / Priority style maps ─────────────────────────────── */
 const statusStyles = {
-  PENDING:  "bg-orange-100 text-orange-600",
-  APPROVED: "bg-blue-100 text-blue-600",
-  REJECTED: "bg-red-100 text-red-600",
-  ASSIGNED: "bg-indigo-100 text-indigo-600",
-  RESOLVED: "bg-green-100 text-green-600",
-  CLOSED:   "bg-gray-200 text-gray-600",
-};
-
-const priorityStyles = {
-  LOW:    "bg-gray-100 text-gray-600",
-  MEDIUM: "bg-orange-100 text-orange-600",
-  HIGH:   "bg-red-100 text-red-600",
+  PENDING:  { bg: "color-mix(in srgb, #f59e0b 15%, transparent)", color: "#f59e0b", border: "#f59e0b" },
+  APPROVED: { bg: "color-mix(in srgb, var(--primary) 15%, transparent)", color: "var(--primary)", border: "var(--primary)" },
+  REJECTED: { bg: "color-mix(in srgb, var(--error) 15%, transparent)", color: "var(--error)", border: "var(--error)" },
+  ASSIGNED: { bg: "color-mix(in srgb, #8b5cf6 15%, transparent)", color: "#8b5cf6", border: "#8b5cf6" },
+  RESOLVED: { bg: "color-mix(in srgb, #22c55e 15%, transparent)", color: "#22c55e", border: "#22c55e" },
+  CLOSED:   { bg: "var(--surface-container-high)", color: "var(--on-surface-variant)", border: "var(--outline-variant)" },
 };
 
 const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
@@ -26,7 +20,7 @@ const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
 /* ── Horizontal bar chart with count inside bars ──────────────── */
 function CategoryBarChart({ data }) {
   if (!data || Object.keys(data).length === 0) {
-    return <p className="text-sm italic" style={{ color: "var(--text-muted)" }}>No data yet</p>;
+    return <p className="text-sm italic" style={{ color: "var(--on-surface-variant)" }}>No data yet</p>;
   }
   const entries = Object.entries(data);
   const max = Math.max(...entries.map(([, v]) => v), 1);
@@ -35,11 +29,14 @@ function CategoryBarChart({ data }) {
     <div className="space-y-3">
       {entries.map(([label, count]) => (
         <div key={label} className="flex items-center gap-3">
-          <span className="w-28 text-sm font-medium text-right shrink-0" style={{ color: "var(--text-primary)" }}>{label}</span>
-          <div className="flex-1 h-7 rounded-md overflow-hidden relative" style={{ background: "var(--chart-track)" }}>
+          <span className="w-28 text-sm font-medium text-right shrink-0" style={{ color: "var(--on-surface)" }}>{label}</span>
+          <div className="flex-1 h-7 rounded-md overflow-hidden relative" style={{ background: "var(--surface-container-high)" }}>
             <div
-              className="h-full rounded-md bg-(--accent) transition-all flex items-center justify-end pr-2"
-              style={{ width: `${Math.max((count / max) * 100, 12)}%` }}
+              className="h-full rounded-md flex items-center justify-end pr-2 transition-all"
+              style={{
+                width: `${Math.max((count / max) * 100, 12)}%`,
+                background: "var(--primary)",
+              }}
             >
               <span className="text-xs font-bold text-white">{count}</span>
             </div>
@@ -50,10 +47,10 @@ function CategoryBarChart({ data }) {
   );
 }
 
-/* ── Card helper with glassmorphism ──────────────────────── */
+/* ── Card helper ──────────────────────── */
 function Card({ children, className = "" }) {
   return (
-    <div className={`glass-card ${className}`}>
+    <div className={`card ${className}`}>
       {children}
     </div>
   );
@@ -61,13 +58,16 @@ function Card({ children, className = "" }) {
 
 /* ── Clickable Complaint Row (opens modal) ────────────────────── */
 function ComplaintRow({ complaint: c, onClick }) {
+  const s = statusStyles[c.status] || statusStyles.CLOSED;
+
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer glass-card transition-all duration-200 hover:scale-102"
+      className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer card transition-all duration-200"
+      style={{ padding: "12px 16px" }}
     >
       {/* ID */}
-      <span className="text-xs font-mono shrink-0" style={{ color: "var(--text-muted)" }} title={c.id}>#{String(c.id).slice(-6)}</span>
+      <span className="text-xs font-mono shrink-0" style={{ color: "var(--on-surface-variant)" }} title={c.id}>#{String(c.id).slice(-6)}</span>
 
       {/* Priority dot */}
       <span
@@ -79,36 +79,32 @@ function ComplaintRow({ complaint: c, onClick }) {
       />
 
       {/* Title */}
-      <span className="flex-1 font-medium text-sm truncate" style={{ color: "var(--text-primary)" }}>
+      <span className="flex-1 font-medium text-sm truncate" style={{ color: "var(--on-surface)" }}>
         {c.title}
       </span>
 
       {/* Issue Type badge */}
-      <span className="hidden md:inline-block px-2 py-0.5 rounded-md text-[11px] font-medium shrink-0" style={{ background: "var(--bg-input)", color: "var(--text-secondary)" }}>
+      <span className="hidden md:inline-block px-2 py-0.5 rounded-md text-[11px] font-medium shrink-0" style={{ background: "var(--surface-container-high)", color: "var(--on-surface-variant)" }}>
         {c.issueType || c.category}
       </span>
 
       {/* Status badge */}
-      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap shrink-0 ${statusStyles[c.status]}`}>
+      <span
+        className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold whitespace-nowrap shrink-0"
+        style={{ background: s.bg, color: s.color }}
+      >
         {c.status}
       </span>
 
       {/* Date */}
-      <span className="hidden lg:inline text-[11px] shrink-0 w-20 text-right" style={{ color: "var(--text-muted)" }}>
+      <span className="hidden lg:inline text-[11px] shrink-0 w-20 text-right" style={{ color: "var(--on-surface-variant)" }}>
         {new Date(c.createdAt).toLocaleDateString()}
       </span>
 
       {/* View indicator arrow */}
-      <svg
-        className="w-4 h-4 shrink-0"
-        style={{ color: "var(--text-muted)" }}
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={2}
-      >
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-      </svg>
+      <span className="material-symbols-outlined text-base shrink-0" style={{ color: "var(--on-surface-variant)" }}>
+        chevron_right
+      </span>
     </button>
   );
 }
@@ -141,6 +137,12 @@ function StudentPanel() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Poll for updates so student sees mentor actions in near-real-time.
+  useEffect(() => {
+    const id = setInterval(() => fetchData(), 6000);
+    return () => clearInterval(id);
+  }, [fetchData]);
 
   const counts = {
     ALL: complaints.length,
@@ -187,18 +189,24 @@ function StudentPanel() {
 
   const statCards = [
     {
-      label: "Total Submitted", value: stats?.total ?? "–", subtitle: "Complaints submitted",
-      icon: <svg className="w-6 h-6" style={{ color: "var(--accent)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>,
-      valueColor: "var(--accent)",
+      label: "Total Submitted",
+      value: stats?.total ?? "–",
+      subtitle: "Complaints submitted",
+      icon: "description",
+      valueColor: "var(--primary)",
     },
     {
-      label: "Pending", value: stats?.pending ?? "–", subtitle: "Awaiting action",
-      icon: <svg className="w-6 h-6" style={{ color: "#eab308" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
-      valueColor: "#eab308",
+      label: "Pending",
+      value: stats?.pending ?? "–",
+      subtitle: "Awaiting action",
+      icon: "pending",
+      valueColor: "#f59e0b",
     },
     {
-      label: "Resolved", value: stats?.resolved ?? "–", subtitle: "Successfully resolved",
-      icon: <svg className="w-6 h-6" style={{ color: "#22c55e" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
+      label: "Resolved",
+      value: stats?.resolved ?? "–",
+      subtitle: "Successfully resolved",
+      icon: "task_alt",
       valueColor: "#22c55e",
     },
   ];
@@ -211,11 +219,13 @@ function StudentPanel() {
           {statCards.map((card) => (
             <Card key={card.label}>
               <div className="flex items-center gap-2 mb-3">
-                {card.icon}
-                <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>{card.label}</span>
+                <span className="material-symbols-outlined text-xl" style={{ color: card.valueColor }}>
+                  {card.icon}
+                </span>
+                <span className="text-sm font-semibold" style={{ color: "var(--on-surface)" }}>{card.label}</span>
               </div>
               <p className="text-4xl font-bold mb-1" style={{ color: card.valueColor }}>{card.value}</p>
-              <p className="text-xs" style={{ color: "var(--text-muted)" }}>{card.subtitle}</p>
+              <p className="text-xs" style={{ color: "var(--on-surface-variant)" }}>{card.subtitle}</p>
             </Card>
           ))}
         </div>
@@ -223,12 +233,12 @@ function StudentPanel() {
         {/* Category Breakdown + New Complaint button */}
         <Card>
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>Complaints by Category</h2>
+            <h2 className="text-lg font-semibold" style={{ color: "var(--on-surface)" }}>Complaints by Category</h2>
             <Link
               to="/submit-complaint"
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-(--accent) text-white text-sm font-semibold rounded-lg hover:opacity-90 transition"
+              className="btn-primary inline-flex items-center gap-1.5 text-sm font-semibold"
             >
-              <span className="text-lg leading-none">+</span> New Complaint
+              <span className="material-symbols-outlined text-base">add</span> New Complaint
             </Link>
           </div>
           <CategoryBarChart data={stats?.byCategory} />
@@ -236,25 +246,20 @@ function StudentPanel() {
 
         {/* Error */}
         {error && (
-          <div className="flex items-center gap-2 bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-xl text-sm">
-            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
+          <div className="flex items-center gap-2 px-4 py-3 rounded-xl text-sm" style={{ background: "var(--error-container)", color: "var(--on-error-container)" }}>
+            <span className="material-symbols-outlined">error</span>
             {error}
           </div>
         )}
 
         {/* ═══ My Complaints ═══════════════════════════════════ */}
-        <div
-          className="rounded-xl shadow-sm"
-          style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
-        >
+        <div className="rounded-xl" style={{ background: "var(--surface-container-lowest)", border: "1px solid var(--outline-variant)" }}>
           {/* Header with title, search, sort, filters */}
           <div className="px-5 pt-5 pb-4 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-lg font-semibold" style={{ color: "var(--text-primary)" }}>
+              <h2 className="text-lg font-semibold" style={{ color: "var(--on-surface)" }}>
                 My Complaints
-                <span className="text-sm font-normal ml-2" style={{ color: "var(--text-muted)" }}>
+                <span className="text-sm font-normal ml-2" style={{ color: "var(--on-surface-variant)" }}>
                   {visible.length} of {complaints.length}
                 </span>
               </h2>
@@ -262,16 +267,16 @@ function StudentPanel() {
               <div className="flex items-center gap-3">
                 {/* Search */}
                 <div className="relative">
-                  <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--text-muted)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
+                  <span className="material-symbols-outlined w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-base" style={{ color: "var(--on-surface-variant)" }}>
+                    search
+                  </span>
                   <input
                     type="text"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     placeholder="Search complaints…"
-                    className="text-sm py-2 pl-9 pr-3 rounded-lg w-56 outline-none focus:ring-2 focus:ring-(--accent)/30 transition"
-                    style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                    className="text-sm py-2 pl-9 pr-3 rounded-lg outline-none transition"
+                    style={{ background: "var(--surface-container-low)", border: "1px solid var(--outline-variant)", color: "var(--on-surface)" }}
                   />
                 </div>
 
@@ -279,8 +284,8 @@ function StudentPanel() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="text-sm py-2 px-3 rounded-lg outline-none cursor-pointer focus:ring-2 focus:ring-(--accent)/30 transition"
-                  style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                  className="text-sm py-2 px-3 rounded-lg outline-none cursor-pointer transition"
+                  style={{ background: "var(--surface-container-low)", border: "1px solid var(--outline-variant)", color: "var(--on-surface)" }}
                 >
                   <option value="newest">Newest first</option>
                   <option value="oldest">Oldest first</option>
@@ -296,10 +301,8 @@ function StudentPanel() {
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
-                  className={`px-3 py-1 text-xs rounded-full font-medium transition cursor-pointer ${
-                    filter === f ? "bg-(--accent) text-white" : ""
-                  }`}
-                  style={filter !== f ? { background: "var(--bg-input)", color: "var(--text-secondary)" } : {}}
+                  className="px-3 py-1 text-xs rounded-full font-medium transition cursor-pointer"
+                  style={filter === f ? { background: "var(--primary)", color: "white" } : { background: "var(--surface-container-high)", color: "var(--on-surface-variant)" }}
                 >
                   {f} ({counts[f]})
                 </button>
@@ -310,19 +313,16 @@ function StudentPanel() {
           {/* Complaint rows */}
           <div className="px-5 pb-5">
             {loading ? (
-              <div className="flex items-center justify-center py-12 gap-3" style={{ color: "var(--text-muted)" }}>
-                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
+              <div className="flex items-center justify-center py-12 gap-3" style={{ color: "var(--on-surface-variant)" }}>
+                <span className="material-symbols-outlined text-base animate-spin">progress_activity</span>
                 <span className="text-sm">Loading complaints…</span>
               </div>
             ) : visible.length === 0 ? (
               <div className="text-center py-12">
-                <svg className="w-12 h-12 mx-auto mb-3" style={{ color: "var(--text-muted)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                <p className="text-sm" style={{ color: "var(--text-muted)" }}>
+                <span className="material-symbols-outlined w-12 h-12 mx-auto mb-3 text-base" style={{ color: "var(--on-surface-variant)" }}>
+                  search_off
+                </span>
+                <p className="text-sm" style={{ color: "var(--on-surface-variant)" }}>
                   {search ? `No complaints matching "${search}"` : "No complaints yet. Submit one above."}
                 </p>
               </div>

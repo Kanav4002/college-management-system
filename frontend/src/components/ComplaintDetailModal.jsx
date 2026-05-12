@@ -3,18 +3,18 @@ import api from "../api/api";
 
 /* ── Status / Priority style maps ─────────────────────────────── */
 const statusStyles = {
-  PENDING:  "bg-orange-100 text-orange-700",
-  APPROVED: "bg-blue-100 text-blue-700",
-  REJECTED: "bg-red-100 text-red-700",
-  ASSIGNED: "bg-indigo-100 text-indigo-700",
-  RESOLVED: "bg-green-100 text-green-700",
-  CLOSED:   "bg-gray-200 text-gray-600",
+  PENDING:  { bg: "color-mix(in srgb, #f59e0b 15%, transparent)", color: "#f59e0b" },
+  APPROVED: { bg: "color-mix(in srgb, var(--primary) 15%, transparent)", color: "var(--primary)" },
+  REJECTED: { bg: "color-mix(in srgb, var(--error) 15%, transparent)", color: "var(--error)" },
+  ASSIGNED: { bg: "color-mix(in srgb, #8b5cf6 15%, transparent)", color: "#8b5cf6" },
+  RESOLVED: { bg: "color-mix(in srgb, #22c55e 15%, transparent)", color: "#22c55e" },
+  CLOSED:   { bg: "var(--surface-container-high)", color: "var(--on-surface-variant)" },
 };
 
 const priorityStyles = {
-  LOW:    { bg: "bg-gray-100", text: "text-gray-600", dot: "#9ca3af" },
-  MEDIUM: { bg: "bg-orange-100", text: "text-orange-600", dot: "#f59e0b" },
-  HIGH:   { bg: "bg-red-100", text: "text-red-600", dot: "#ef4444" },
+  LOW:    { dot: "#9ca3af" },
+  MEDIUM: { dot: "#f59e0b" },
+  HIGH:   { dot: "var(--error)" },
 };
 
 const statusMessages = {
@@ -43,10 +43,10 @@ function Field({ label, value, fullWidth = false }) {
   if (!value && value !== 0) return null;
   return (
     <div className={fullWidth ? "col-span-full" : ""}>
-      <dt className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--text-muted)" }}>
+      <dt className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--on-surface-variant)", opacity: 0.7 }}>
         {label}
       </dt>
-      <dd className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+      <dd className="text-sm font-medium" style={{ color: "var(--on-surface)" }}>
         {value}
       </dd>
     </div>
@@ -140,37 +140,51 @@ export default function ComplaintDetailModal({ complaint: c, onClose, role = "ST
   const isTerminal = isClosed || isResolved;
 
   return (
-    /* Backdrop */
+    /* Backdrop - Dark translucent overlay */
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+      style={{
+        background: "rgba(0, 0, 0, 0.75)",
+        backdropFilter: "blur(2px)",
+        WebkitBackdropFilter: "blur(2px)",
+        animation: "modalOverlayIn 200ms ease-out",
+      }}
       onClick={onClose}
     >
-      {/* Modal container */}
+      {/* Modal container - Solid dark card with depth */}
       <div
-        className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl"
-        style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
+        className="relative w-full max-w-2xl max-h-[90vh] overflow-hidden rounded-2xl"
+        style={{
+          background: "color-mix(in srgb, var(--surface-container-lowest) 98%, transparent)",
+          border: "1px solid var(--outline-variant)",
+          boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.1)",
+          animation: "modalSlideIn 250ms cubic-bezier(0.4, 0, 0.2, 1)",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Header ───────────────────────────────────────────── */}
         <div
-          className="sticky top-0 z-10 flex items-start justify-between gap-4 px-6 py-5 rounded-t-2xl"
-          style={{ background: "var(--bg-card)", borderBottom: "1px solid var(--border)" }}
+          className="sticky top-0 z-10 flex items-start justify-between gap-4 px-6 py-5"
+          style={{
+            background: "color-mix(in srgb, var(--surface-container-lowest) 99%, transparent)",
+            borderBottom: "1px solid var(--outline-variant)",
+            boxShadow: "0 4px 16px rgba(0, 0, 0, 0.08)",
+          }}
         >
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <span className="text-xs font-mono px-2 py-0.5 rounded-md" style={{ background: "var(--bg-input)", color: "var(--text-muted)" }} title={c.id}>
+              <span className="text-xs font-mono px-2 py-0.5 rounded-md" style={{ background: "var(--surface-container-high)", color: "var(--on-surface-variant)" }} title={c.id}>
                 #{String(c.id).slice(-6)}
               </span>
-              <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold ${statusStyles[c.status]}`}>
+              <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold" style={{ background: statusStyles[c.status]?.bg, color: statusStyles[c.status]?.color }}>
                 {c.status}
               </span>
-              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${pStyle.bg} ${pStyle.text}`}>
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold" style={{ background: "var(--surface-container-low)", color: pStyle.dot }}>
                 <span className="w-1.5 h-1.5 rounded-full" style={{ background: pStyle.dot }} />
                 {c.priority}
               </span>
             </div>
-            <h2 className="text-lg font-bold leading-snug" style={{ color: "var(--text-primary)" }}>
+            <h2 className="text-lg font-bold leading-snug" style={{ color: "var(--on-surface)" }}>
               {c.title}
             </h2>
           </div>
@@ -178,23 +192,25 @@ export default function ComplaintDetailModal({ complaint: c, onClose, role = "ST
           {/* Close button */}
           <button
             onClick={onClose}
-            className="shrink-0 h-8 w-8 flex items-center justify-center rounded-lg transition cursor-pointer hover:opacity-70"
-            style={{ background: "var(--bg-input)", color: "var(--text-muted)" }}
+            className="shrink-0 h-8 w-8 flex items-center justify-center rounded-lg transition cursor-pointer"
+            style={{
+              background: "var(--surface-container-high)",
+              color: "var(--on-surface-variant)",
+              border: "1px solid var(--outline-variant)",
+            }}
             title="Close (Esc)"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <span className="material-symbols-outlined text-base">close</span>
           </button>
         </div>
 
         {/* ── Body ─────────────────────────────────────────────── */}
-        <div className="px-6 py-5 space-y-6">
+        <div className="px-6 py-5 space-y-6 overflow-y-auto" style={{ maxHeight: "calc(90vh - 140px)" }}>
 
           {/* Status message banner */}
           <div
             className="flex items-center gap-2.5 px-4 py-3 rounded-xl text-sm"
-            style={{ background: "var(--bg-input)", color: "var(--text-secondary)" }}
+            style={{ background: "var(--surface-container-low)", color: "var(--on-surface-variant)" }}
           >
             {c.status === "RESOLVED" || c.status === "CLOSED" ? (
               <svg className="w-5 h-5 text-green-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -214,17 +230,17 @@ export default function ComplaintDetailModal({ complaint: c, onClose, role = "ST
 
           {/* Description */}
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--text-muted)" }}>
+            <h3 className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "var(--on-surface-variant)", opacity: 0.7 }}>
               Description
             </h3>
-            <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: "var(--text-secondary)" }}>
+            <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: "var(--on-surface-variant)" }}>
               {c.description}
             </p>
           </div>
 
           {/* Detail grid */}
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--text-muted)" }}>
+            <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--on-surface-variant)", opacity: 0.7 }}>
               Complaint Details
             </h3>
             <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
@@ -240,7 +256,7 @@ export default function ComplaintDetailModal({ complaint: c, onClose, role = "ST
 
           {/* People */}
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--text-muted)" }}>
+            <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--on-surface-variant)", opacity: 0.7 }}>
               People
             </h3>
             <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
@@ -255,7 +271,7 @@ export default function ComplaintDetailModal({ complaint: c, onClose, role = "ST
 
           {/* Timestamps */}
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--text-muted)" }}>
+            <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "var(--on-surface-variant)", opacity: 0.7 }}>
               Timeline
             </h3>
             <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-4">
@@ -271,44 +287,45 @@ export default function ComplaintDetailModal({ complaint: c, onClose, role = "ST
 
           {/* ── Comments Section ─────────────────────────────────── */}
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2" style={{ color: "var(--text-muted)" }}>
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
+            <h3 className="text-xs font-semibold uppercase tracking-wider mb-3 flex items-center gap-2" style={{ color: "var(--on-surface-variant)", opacity: 0.7 }}>
+              <span className="material-symbols-outlined text-base">chat</span>
               Comments ({comments.length})
             </h3>
 
             {/* Comment list */}
             <div className="space-y-3 mb-4 max-h-60 overflow-y-auto">
               {loadingComments ? (
-                <p className="text-xs italic" style={{ color: "var(--text-muted)" }}>Loading comments…</p>
+                <p className="text-xs italic" style={{ color: "var(--on-surface-variant)" }}>Loading comments…</p>
               ) : comments.length === 0 ? (
-                <p className="text-xs italic" style={{ color: "var(--text-muted)" }}>No comments yet. Be the first to add one.</p>
+                <p className="text-xs italic" style={{ color: "var(--on-surface-variant)" }}>No comments yet. Be the first to add one.</p>
               ) : (
                 comments.map((comment) => (
                   <div
                     key={comment.id}
                     className="rounded-lg px-4 py-3"
-                    style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}
+                    style={{ background: "var(--surface-container-low)", border: "1px solid var(--outline-variant)" }}
                   >
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
+                        <span className="text-xs font-semibold" style={{ color: "var(--on-surface)" }}>
                           {comment.authorName}
                         </span>
-                        <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                          comment.authorRole === "ADMIN" ? "bg-purple-100 text-purple-700" :
-                          comment.authorRole === "MENTOR" ? "bg-blue-100 text-blue-700" :
-                          "bg-gray-100 text-gray-600"
-                        }`}>
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold" style={{
+                          background: comment.authorRole === "ADMIN" ? "color-mix(in srgb, #8b5cf6 15%, transparent)" :
+                            comment.authorRole === "MENTOR" ? "color-mix(in srgb, var(--primary) 15%, transparent)" :
+                            "var(--surface-container-high)",
+                          color: comment.authorRole === "ADMIN" ? "#8b5cf6" :
+                            comment.authorRole === "MENTOR" ? "var(--primary)" :
+                            "var(--on-surface-variant)"
+                        }}>
                           {comment.authorRole}
                         </span>
                       </div>
-                      <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+                      <span className="text-[10px]" style={{ color: "var(--on-surface-variant)", opacity: 0.7 }}>
                         {new Date(comment.createdAt).toLocaleString()}
                       </span>
                     </div>
-                    <p className="text-sm whitespace-pre-line" style={{ color: "var(--text-secondary)" }}>
+                    <p className="text-sm whitespace-pre-line" style={{ color: "var(--on-surface-variant)" }}>
                       {comment.content}
                     </p>
                   </div>
@@ -318,7 +335,7 @@ export default function ComplaintDetailModal({ complaint: c, onClose, role = "ST
 
             {/* Comment error */}
             {commentError && (
-              <p className="text-xs text-red-500 mb-2">{commentError}</p>
+              <p className="text-xs mb-2" style={{ color: "var(--error)" }}>{commentError}</p>
             )}
 
             {/* Add comment input */}
@@ -330,16 +347,21 @@ export default function ComplaintDetailModal({ complaint: c, onClose, role = "ST
                   onChange={(e) => setNewComment(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleAddComment(); } }}
                   placeholder="Write a comment…"
-                  className="flex-1 text-sm rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-[#0088D1]/30 transition"
-                  style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+                  className="flex-1 text-sm rounded-xl px-4 py-3 outline-none transition"
+                  style={{
+                    background: "var(--surface-container-low)",
+                    border: "1px solid var(--outline-variant)",
+                    color: "var(--on-surface)",
+                  }}
                   disabled={postingComment}
                 />
                 <button
                   onClick={handleAddComment}
                   disabled={postingComment || !newComment.trim()}
-                  className="px-3 py-2 bg-[#0088D1] text-white text-sm font-medium rounded-lg hover:opacity-90 transition disabled:opacity-50 cursor-pointer"
+                  className="px-5 py-3 rounded-xl text-sm font-semibold transition disabled:opacity-50 cursor-pointer"
+                  style={{ background: "var(--primary)", color: "var(--on-primary)" }}
                 >
-                  {postingComment ? "…" : "Send"}
+                  <span className="material-symbols-outlined text-base">send</span>
                 </button>
               </div>
             )}
@@ -348,14 +370,22 @@ export default function ComplaintDetailModal({ complaint: c, onClose, role = "ST
 
         {/* ── Footer — Actions ─────────────────────────────────── */}
         <div
-          className="sticky bottom-0 z-10 flex items-center justify-between gap-3 px-6 py-4 rounded-b-2xl"
-          style={{ background: "var(--bg-card)", borderTop: "1px solid var(--border)" }}
+          className="sticky bottom-0 z-10 flex items-center justify-between gap-3 px-6 py-4"
+          style={{
+            background: "color-mix(in srgb, var(--surface-container-lowest) 99%, transparent)",
+            borderTop: "1px solid var(--outline-variant)",
+            boxShadow: "0 -4px 16px rgba(0, 0, 0, 0.08)",
+          }}
         >
           {/* Left: close */}
           <button
             onClick={onClose}
-            className="px-4 py-2 text-sm font-medium rounded-lg transition cursor-pointer hover:opacity-80"
-            style={{ background: "var(--bg-input)", color: "var(--text-secondary)" }}
+            className="px-4 py-2.5 text-sm font-medium rounded-xl transition cursor-pointer"
+            style={{
+              background: "var(--surface-container-low)",
+              color: "var(--on-surface-variant)",
+              border: "1px solid var(--outline-variant)",
+            }}
           >
             Close
           </button>
@@ -372,21 +402,19 @@ export default function ComplaintDetailModal({ complaint: c, onClose, role = "ST
                 <button
                   onClick={() => onAction(c.id, "approve")}
                   disabled={acting}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition disabled:opacity-50 cursor-pointer shadow-sm"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl transition disabled:opacity-50 cursor-pointer"
+                  style={{ background: "#22c55e", color: "white", boxShadow: "0 2px 8px rgba(34, 197, 94, 0.3)" }}
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
+                  <span className="material-symbols-outlined text-base">check_circle</span>
                   Approve
                 </button>
                 <button
                   onClick={() => onAction(c.id, "reject")}
                   disabled={acting}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition disabled:opacity-50 cursor-pointer shadow-sm"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl transition disabled:opacity-50 cursor-pointer"
+                  style={{ background: "var(--error)", color: "white", boxShadow: "0 2px 8px rgba(239, 68, 68, 0.3)" }}
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <span className="material-symbols-outlined text-base">cancel</span>
                   Reject
                 </button>
               </>
@@ -397,11 +425,10 @@ export default function ComplaintDetailModal({ complaint: c, onClose, role = "ST
               <button
                 onClick={() => onAction(c.id, "escalate")}
                 disabled={acting}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-amber-500 text-white text-sm font-semibold rounded-lg hover:bg-amber-600 transition disabled:opacity-50 cursor-pointer shadow-sm"
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl transition disabled:opacity-50 cursor-pointer"
+                style={{ background: "#f59e0b", color: "white", boxShadow: "0 2px 8px rgba(245, 158, 11, 0.3)" }}
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
-                </svg>
+                <span className="material-symbols-outlined text-base">arrow_upward</span>
                 Escalate
               </button>
             )}
@@ -412,11 +439,10 @@ export default function ComplaintDetailModal({ complaint: c, onClose, role = "ST
               <button
                 onClick={() => onAction(c.id, "resolve")}
                 disabled={acting}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition disabled:opacity-50 cursor-pointer shadow-sm"
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl transition disabled:opacity-50 cursor-pointer"
+                style={{ background: "#22c55e", color: "white", boxShadow: "0 2px 8px rgba(34, 197, 94, 0.3)" }}
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
+                <span className="material-symbols-outlined text-base">check_circle</span>
                 Resolve
               </button>
             )}
@@ -426,11 +452,10 @@ export default function ComplaintDetailModal({ complaint: c, onClose, role = "ST
               <button
                 onClick={() => setShowAssignModal(true)}
                 disabled={acting}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 cursor-pointer shadow-sm"
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl transition disabled:opacity-50 cursor-pointer"
+                style={{ background: "#8b5cf6", color: "white", boxShadow: "0 2px 8px rgba(139, 92, 246, 0.3)" }}
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
+                <span className="material-symbols-outlined text-base">assignment_ind</span>
                 Assign
               </button>
             )}
@@ -440,11 +465,10 @@ export default function ComplaintDetailModal({ complaint: c, onClose, role = "ST
               <button
                 onClick={() => onAction(c.id, "close")}
                 disabled={acting}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-500 text-white text-sm font-semibold rounded-lg hover:bg-gray-600 transition disabled:opacity-50 cursor-pointer shadow-sm"
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl transition disabled:opacity-50 cursor-pointer"
+                style={{ background: "var(--surface-container-high)", color: "var(--on-surface-variant)" }}
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                </svg>
+                <span className="material-symbols-outlined text-base">lock</span>
                 Close
               </button>
             )}
@@ -454,29 +478,24 @@ export default function ComplaintDetailModal({ complaint: c, onClose, role = "ST
               <button
                 onClick={() => setShowDeleteConfirm(true)}
                 disabled={acting}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition disabled:opacity-50 cursor-pointer shadow-sm"
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl transition disabled:opacity-50 cursor-pointer"
+                style={{ background: "var(--error)", color: "white", boxShadow: "0 2px 8px rgba(239, 68, 68, 0.3)" }}
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
+                <span className="material-symbols-outlined text-base">delete</span>
                 Delete
               </button>
             )}
 
             {/* Terminal state indicators */}
             {isResolved && (
-              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-green-600">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+              <span className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: "#22c55e" }}>
+                <span className="material-symbols-outlined text-base">verified</span>
                 Resolved
               </span>
             )}
             {isClosed && (
-              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-500">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                </svg>
+              <span className="inline-flex items-center gap-2 text-sm font-semibold" style={{ color: "var(--on-surface-variant)" }}>
+                <span className="material-symbols-outlined text-base">lock</span>
                 Closed
               </span>
             )}
@@ -487,41 +506,58 @@ export default function ComplaintDetailModal({ complaint: c, onClose, role = "ST
       {/* ── Assign Department Sub-Modal ────────────────────────── */}
       {showAssignModal && (
         <div
-          className="fixed inset-0 z-60 flex items-center justify-center p-4"
-          style={{ background: "rgba(0,0,0,0.4)" }}
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4"
+          style={{
+            background: "rgba(0, 0, 0, 0.7)",
+            backdropFilter: "blur(2px)",
+            WebkitBackdropFilter: "blur(2px)",
+          }}
           onClick={() => setShowAssignModal(false)}
         >
           <div
-            className="rounded-xl p-6 shadow-2xl w-full max-w-sm"
-            style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
+            className="rounded-2xl p-8 w-full max-w-sm"
+            style={{
+              background: "var(--surface-container-lowest)",
+              border: "1px solid var(--outline-variant)",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-lg font-semibold mb-4" style={{ color: "var(--text-primary)" }}>
+            <h3 className="text-lg font-semibold mb-4" style={{ color: "var(--on-surface)" }}>
               Assign to Department
             </h3>
             <select
               value={selectedDept}
               onChange={(e) => setSelectedDept(e.target.value)}
-              className="w-full text-sm rounded-lg px-3 py-2.5 mb-4 outline-none focus:ring-2 focus:ring-[#0088D1]/30"
-              style={{ background: "var(--bg-input)", border: "1px solid var(--border)", color: "var(--text-primary)" }}
+              className="w-full text-sm rounded-xl px-4 py-3 mb-6 outline-none transition"
+              style={{
+                background: "var(--surface-container-low)",
+                border: "1px solid var(--outline-variant)",
+                color: "var(--on-surface)",
+              }}
             >
               <option value="">Select Department…</option>
               {DEPARTMENT_OPTIONS.map((d) => (
                 <option key={d} value={d}>{d}</option>
               ))}
             </select>
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowAssignModal(false)}
-                className="px-3 py-2 text-sm rounded-lg cursor-pointer"
-                style={{ background: "var(--bg-input)", color: "var(--text-secondary)" }}
+                className="px-4 py-2.5 text-sm font-medium rounded-xl cursor-pointer"
+                style={{
+                  background: "var(--surface-container-low)",
+                  color: "var(--on-surface-variant)",
+                  border: "1px solid var(--outline-variant)",
+                }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleAssign}
                 disabled={!selectedDept}
-                className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 cursor-pointer"
+                className="px-5 py-2.5 text-sm font-semibold rounded-xl transition disabled:opacity-50 cursor-pointer"
+                style={{ background: "var(--primary)", color: "var(--on-primary)" }}
               >
                 Assign
               </button>
@@ -533,34 +569,50 @@ export default function ComplaintDetailModal({ complaint: c, onClose, role = "ST
       {/* ── Delete Confirmation Sub-Modal ──────────────────────── */}
       {showDeleteConfirm && (
         <div
-          className="fixed inset-0 z-60 flex items-center justify-center p-4"
-          style={{ background: "rgba(0,0,0,0.4)" }}
+          className="fixed inset-0 z-[110] flex items-center justify-center p-4"
+          style={{
+            background: "rgba(0, 0, 0, 0.7)",
+            backdropFilter: "blur(2px)",
+            WebkitBackdropFilter: "blur(2px)",
+          }}
           onClick={() => setShowDeleteConfirm(false)}
         >
           <div
-            className="rounded-xl p-6 shadow-2xl w-full max-w-sm"
-            style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
+            className="rounded-2xl p-8 w-full max-w-sm"
+            style={{
+              background: "var(--surface-container-lowest)",
+              border: "1px solid var(--outline-variant)",
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.5)",
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-lg font-semibold mb-2" style={{ color: "var(--text-primary)" }}>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center mb-4" style={{ background: "color-mix(in srgb, var(--error) 15%, transparent)" }}>
+              <span className="material-symbols-outlined text-2xl" style={{ color: "var(--error)" }}>warning</span>
+            </div>
+            <h3 className="text-lg font-semibold mb-2" style={{ color: "var(--on-surface)" }}>
               Delete Complaint #{String(c.id).slice(-6)}?
             </h3>
-            <p className="text-sm mb-4" style={{ color: "var(--text-secondary)" }}>
+            <p className="text-sm mb-6" style={{ color: "var(--on-surface-variant)" }}>
               This action cannot be undone. All associated comments will also be deleted.
             </p>
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="px-3 py-2 text-sm rounded-lg cursor-pointer"
-                style={{ background: "var(--bg-input)", color: "var(--text-secondary)" }}
+                className="px-4 py-2.5 text-sm font-medium rounded-xl cursor-pointer"
+                style={{
+                  background: "var(--surface-container-low)",
+                  color: "var(--on-surface-variant)",
+                  border: "1px solid var(--outline-variant)",
+                }}
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
-                className="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg hover:bg-red-700 transition cursor-pointer"
+                className="px-5 py-2.5 text-sm font-semibold rounded-xl transition cursor-pointer"
+                style={{ background: "var(--error)", color: "white" }}
               >
-                Delete Permanently
+                Delete
               </button>
             </div>
           </div>

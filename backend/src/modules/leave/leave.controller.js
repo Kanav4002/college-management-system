@@ -21,4 +21,25 @@ async function reject(req, res) {
   return ok(res, await service.reject(req.user, req.params.id));
 }
 
-module.exports = { apply, listMine, listAssigned, approve, reject };
+async function statsMentor(req, res) {
+  return ok(res, await service.statsMentor(req.user));
+}
+
+// Dev/debug helpers
+async function debugRecent(req, res) {
+  return ok(res, await service.debugRecent());
+}
+
+module.exports = { apply, listMine, listAssigned, approve, reject, debugRecent, statsMentor };
+module.exports.statsMentor = statsMentor;
+
+// Dev helper to see what a mentor would get for /assigned
+async function debugAssigned(req, res) {
+  const mentorId = req.params.mentorId;
+  if (!mentorId) return ok(res, []);
+  // Build an actor object similar to verifyJwt output
+  const actor = { id: mentorId, role: 'MENTOR' };
+  return ok(res, await service.listAssigned(actor));
+}
+
+module.exports.debugAssigned = debugAssigned;

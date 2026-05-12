@@ -3,20 +3,13 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
 import { getNotifications, markAllNotificationsRead, markNotificationRead } from "../api/notificationApi";
+import logo from "../assets/logo-removebg-preview.png";
 
 const ROLE_LABELS = {
   STUDENT: "Student",
   MENTOR: "Mentor",
   ADMIN: "Admin",
 };
-
-function Icon({ path }) {
-  return (
-    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-      <path strokeLinecap="round" strokeLinejoin="round" d={path} />
-    </svg>
-  );
-}
 
 export default function AppShell({ title, children }) {
   const { auth, logout } = useAuth();
@@ -28,6 +21,7 @@ export default function AppShell({ title, children }) {
 
   const [notifications, setNotifications] = useState([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!auth) {
@@ -39,7 +33,6 @@ export default function AppShell({ title, children }) {
       try {
         const response = await getNotifications();
         const items = (response.data.data || []).filter((item) => !item.isRead);
-        console.log('Notifications:', items);
         setNotifications(items);
       } catch {
         setNotifications([]);
@@ -48,6 +41,23 @@ export default function AppShell({ title, children }) {
 
     loadNotifications();
   }, [auth]);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileMenuOpen]);
 
   const unreadCount = notifications.filter((item) => !item.isRead).length;
 
@@ -99,83 +109,169 @@ export default function AppShell({ title, children }) {
   };
 
   const navItems = [
-    { to: "/dashboard", label: "Dashboard", icon: "M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0h4" },
-    { to: "/announcements", label: "Announcements", icon: "M12 8v8m-4-4h8" },
+    { to: "/dashboard", label: "Dashboard", icon: "dashboard" },
   ];
 
   if (role === "STUDENT") {
     navItems.push(
-      { to: "/student", label: "Student Panel", icon: "M15 19a6 6 0 10-12 0m12 0h3m-3 0a3 3 0 003-3v-1a3 3 0 00-3-3m-6-4a3 3 0 100-6 3 3 0 000 6z" },
-      { to: "/studentLeave", label: "Leaves", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
-      { to: "/submit-complaint", label: "Raise Complaint", icon: "M12 4v16m8-8H4" }
+      { to: "/announcements", label: "Announcements", icon: "campaign" },
+      { to: "/student", label: "Student Panel", icon: "school" },
+      { to: "/studentLeave", label: "Leaves", icon: "calendar_today" },
+      { to: "/submit-complaint", label: "Raise Complaint", icon: "add_circle" }
     );
   }
 
   if (role === "MENTOR") {
     navItems.push(
-      { to: "/mentor", label: "Mentor Panel", icon: "M12 14l9-5-9-5-9 5 9 5z" },
-      { to: "/employeeLeave", label: "Leaves", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
-      { to: "/submit-complaint", label: "Raise Complaint", icon: "M12 4v16m8-8H4" }
+      { to: "/announcements", label: "Announcements", icon: "campaign" },
+      { to: "/mentor", label: "Mentor Panel", icon: "groups" },
+      { to: "/employeeLeave", label: "Leaves", icon: "calendar_today" },
+      { to: "/submit-complaint", label: "Raise Complaint", icon: "add_circle" }
     );
   }
 
   if (role === "ADMIN") {
     navItems.push(
-      { to: "/admin", label: "Admin Panel", icon: "M9 17v-2a4 4 0 014-4h4" },
-      { to: "/manage-announcements", label: "Manage Announcements", icon: "M5 13l4 4L19 7" },
-      { to: "/groups", label: "Group Management", icon: "M17 20h5v-2a3 3 0 00-5.356-1.857" },
-      { to: "/employeeLeave", label: "Leaves", icon: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" },
-      { to: "/submit-complaint", label: "Create Complaint", icon: "M12 4v16m8-8H4" }
+      { to: "/announcements", label: "Announcements", icon: "campaign" },
+      { to: "/admin", label: "Admin Panel", icon: "admin_panel_settings" },
+      { to: "/manage-announcements", label: "Manage Announcements", icon: "edit_calendar" },
+      { to: "/groups", label: "Groups", icon: "group" },
+      { to: "/employeeLeave", label: "Leaves", icon: "calendar_today" },
+      { to: "/submit-complaint", label: "Create Complaint", icon: "add_circle" }
     );
   }
 
   const handleLogout = () => {
+    setMobileMenuOpen(false);
     logout();
     navigate("/login");
   };
 
   return (
     <div className="app-shell">
-      <aside className="shell-sidebar">
+      {/* Desktop Sidebar */}
+      <aside className="shell-sidebar hidden md:flex">
         <div className="sidebar-brand">
-          <div className="brand-dot" />
+          <img src={logo} alt="UniSphere" className="brand-logo" />
           <div>
-            <p className="brand-title">Student Portal</p>
-            <p className="brand-subtitle">{roleLabel} Workspace</p>
+            <p className="brand-title">UniSphere</p>
+            <p className="brand-subtitle">College Management</p>
           </div>
         </div>
 
-        <nav className="sidebar-nav">
+        <div className="flex-1 flex flex-col justify-between">
+          <nav className="sidebar-nav flex-1">
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) => `side-link ${isActive ? "active" : ""}`}
+              >
+                <span className="material-symbols-outlined">{item.icon}</span>
+                <span>{item.label}</span>
+              </NavLink>
+            ))}
+          </nav>
+
+          {/* User Profile */}
+          <div className="px-3 py-3 mx-2 rounded-xl" style={{ background: "var(--surface-container-low)", border: "1px solid var(--outline-variant)" }}>
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-xl" style={{ color: "var(--on-surface-variant)" }}>person</span>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium truncate" style={{ color: "var(--on-surface)" }}>{auth?.name || auth?.email?.split('@')[0] || "User"}</p>
+                <p className="text-xs truncate" style={{ color: "var(--on-surface-variant)" }}>{roleLabel}</p>
+              </div>
+            </div>
+          </div>
+
+          <button onClick={handleLogout} className="side-link side-logout" type="button">
+            <span className="material-symbols-outlined">logout</span>
+            <span>Log out</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="mobile-menu-overlay"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Mobile Slide-in Menu */}
+      <aside className={`mobile-sidebar ${mobileMenuOpen ? "open" : ""}`}>
+        <div className="mobile-sidebar-header">
+          <div className="sidebar-brand">
+            <img src={logo} alt="UniSphere" className="brand-logo" />
+            <div>
+              <p className="brand-title">UniSphere</p>
+              <p className="brand-subtitle">College Management</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="mobile-close-btn"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <nav className="mobile-sidebar-nav flex-1">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
-              className={({ isActive }) => `side-link ${isActive ? "active" : ""}`}
+              className={({ isActive }) => `mobile-side-link ${isActive ? "active" : ""}`}
+              onClick={() => setMobileMenuOpen(false)}
             >
-              <Icon path={item.icon} />
+              <span className="material-symbols-outlined">{item.icon}</span>
               <span>{item.label}</span>
             </NavLink>
           ))}
         </nav>
 
-        <button onClick={handleLogout} className="side-link side-logout" type="button">
-          <Icon path="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          <span>Log out</span>
-        </button>
+        <div className="mobile-sidebar-footer">
+          <div className="mobile-user-info">
+            <span className="material-symbols-outlined text-2xl" style={{ color: "var(--on-surface-variant)" }}>person</span>
+            <div className="mobile-user-details">
+              <span className="user-email">{auth?.email}</span>
+              <div className="flex gap-2 mt-1">
+                <span className="pill role-pill">{roleLabel}</span>
+                {auth?.groupName && <span className="pill group-pill">{auth.groupName}</span>}
+              </div>
+            </div>
+          </div>
+          <button onClick={handleLogout} className="mobile-side-link mobile-logout" type="button">
+            <span className="material-symbols-outlined">logout</span>
+            <span>Log out</span>
+          </button>
+        </div>
       </aside>
 
+      {/* Main Content */}
       <section className="shell-main">
         <header className="shell-topbar">
+          {/* Mobile Menu Toggle */}
+          <button
+            type="button"
+            className="mobile-menu-btn md:hidden"
+            onClick={() => setMobileMenuOpen(true)}
+          >
+            <span className="material-symbols-outlined">menu</span>
+          </button>
+
           <h1 className="shell-title">{title}</h1>
 
-          <div className="topbar-right">
-            <div className="topbar-user">
-              <div className="avatar" />
-              <span className="user-email">{auth?.email}</span>
-              <span className="pill role-pill">{roleLabel}</span>
-              {auth?.groupName && <span className="pill group-pill">{auth.groupName}</span>}
+          <div className="topbar-right flex items-center gap-3">
+            {/* User Profile Icon */}
+            <div className="hidden md:flex items-center gap-2">
+              <span className="material-symbols-outlined text-xl" style={{ color: "var(--on-surface-variant)" }}>person</span>
+              <span className="text-sm font-medium hidden lg:block" style={{ color: "var(--on-surface)" }}>{auth?.name || auth?.email?.split('@')[0] || "User"}</span>
             </div>
 
+            {/* Notifications */}
             <div className="notification-wrapper relative" style={{ zIndex: 99999 }}>
               <button
                 type="button"
@@ -183,9 +279,7 @@ export default function AppShell({ title, children }) {
                 title="Notifications"
                 onClick={handleToggleNotifications}
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0a3 3 0 11-6 0h6z" />
-                </svg>
+                <span className="material-symbols-outlined">notifications</span>
                 {unreadCount > 0 && !notificationsOpen && (
                   <span className="notification-badge">{unreadCount}</span>
                 )}
@@ -196,72 +290,63 @@ export default function AppShell({ title, children }) {
                   className="absolute right-0"
                   style={{
                     top: '100%',
-                    marginTop: '0.5rem',
+                    marginTop: '8px',
                     width: '360px',
-                    borderRadius: '1rem',
-                    border: '1px solid var(--border)',
-                    background: 'var(--bg-card)',
+                    borderRadius: '16px',
+                    border: '1px solid var(--outline-variant)',
+                    background: 'var(--surface-container-lowest)',
                     zIndex: 99999,
                     maxHeight: '420px',
                     overflowY: 'auto',
-                    boxShadow: '0 20px 40px rgba(0,0,0,0.15)',
+                    boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                    animation: 'dropdownFade 200ms ease-out',
                   }}
                 >
                   <div
-                    className="p-4 border-b font-semibold"
-                    style={{
-                      borderColor: 'var(--border)',
-                      color: 'var(--text-primary)',
-                    }}
+                    className="p-4 border-b flex justify-between items-center"
+                    style={{ borderColor: 'var(--outline-variant}' }}
                   >
-                    Notifications
+                    <span className="font-semibold text-sm" style={{ color: 'var(--on-surface)' }}>
+                      Notifications
+                    </span>
+                    <button
+                      className="text-xs hover:underline"
+                      style={{ color: 'var(--primary)' }}
+                      onClick={handleMarkAllRead}
+                    >
+                      Mark all read
+                    </button>
                   </div>
 
                   {notifications.length === 0 ? (
-                    <div
-                      className="p-4 text-sm italic"
-                      style={{ color: 'var(--text-secondary)' }}
-                    >
+                    <div className="p-4 text-sm text-center" style={{ color: 'var(--on-surface-variant)' }}>
                       No new notifications.
                     </div>
                   ) : (
                     notifications.map((notification) => {
                       const announcementTitle = notification.announcementTitle || notification.announcementId?.title || 'Announcement';
                       const message = notification.message || 'New announcement posted.';
-                      const createdAt = notification.createdAt || notification.created_at || notification.createdAt;
+                      const createdAt = notification.createdAt || notification.created_at;
 
                       return (
                         <button
                           type="button"
                           key={notification._id}
-                          className="w-full text-left"
-                          onClick={() => handleNotificationClick(notification)}
+                          className="w-full text-left p-4 border-b transition-colors"
                           style={{
-                            background: notification.isRead ? 'transparent' : 'rgba(59,130,246,0.06)',
-                            borderBottom: '1px solid var(--border)',
-                            padding: '16px',
-                            cursor: 'pointer',
-                            color: 'var(--text-primary)',
+                            background: notification.isRead ? 'transparent' : 'color-mix(in srgb, var(--primary) 5%, transparent)',
+                            borderColor: 'var(--outline-variant)',
+                            color: 'var(--on-surface)',
                           }}
+                          onClick={() => handleNotificationClick(notification)}
                         >
-                          <div
-                            className="font-semibold text-sm mb-1"
-                            style={{ color: 'var(--text-primary)' }}
-                          >
+                          <div className="font-semibold text-sm mb-1">
                             {announcementTitle}
                           </div>
-
-                          <div
-                            className="text-sm mb-1"
-                            style={{ color: 'var(--text-secondary)' }}
-                          >
+                          <div className="text-sm mb-1" style={{ color: 'var(--on-surface-variant)' }}>
                             {message}
                           </div>
-
-                          <div
-                            className="text-xs"
-                            style={{ color: 'var(--text-secondary)', opacity: 0.7 }}
-                          >
+                          <div className="text-xs" style={{ color: 'var(--on-surface-variant)', opacity: 0.7 }}>
                             {new Date(createdAt).toLocaleString()}
                           </div>
                         </button>
@@ -272,22 +357,14 @@ export default function AppShell({ title, children }) {
               )}
             </div>
 
-            <button type="button" onClick={toggleTheme} className="icon-btn" title={dark ? "Switch to light mode" : "Switch to dark mode"}>
-              {dark ? (
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              ) : (
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
-                </svg>
-              )}
-            </button>
-
-            <button type="button" onClick={handleLogout} className="icon-btn" title="Logout">
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
+            {/* Theme Toggle - Mobile only (desktop uses dropdown) */}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="icon-btn md:hidden"
+              title={dark ? "Switch to light mode" : "Switch to dark mode"}
+            >
+              <span className="material-symbols-outlined">{dark ? "light_mode" : "dark_mode"}</span>
             </button>
           </div>
         </header>
