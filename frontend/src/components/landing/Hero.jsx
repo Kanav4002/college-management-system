@@ -55,7 +55,7 @@ export function Hero() {
           transition={{ duration: 0.7, delay: 0.25 }}
           className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3"
         >
-          <Link to="/register" className="group inline-flex items-center gap-2 h-12 px-6 rounded-xl bg-foreground text-background font-medium hover:opacity-90 transition-all hover:scale-[1.02] shadow-elegant">
+          <Link to="/register" className="group inline-flex items-center gap-2 h-12 px-6 rounded-xl bg-foreground text-black dark:text-white font-medium hover:opacity-90 transition-all hover:scale-[1.02] shadow-elegant">
             Get Started
             <ArrowRight className="size-4 group-hover:translate-x-0.5 transition-transform" />
           </Link>

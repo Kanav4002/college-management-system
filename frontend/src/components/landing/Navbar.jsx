@@ -86,7 +86,7 @@ export function Navbar() {
             {/* Get Started */}
             <Link
               to="/register"
-              className="hidden sm:inline-flex items-center h-9 px-4 text-sm font-medium rounded-lg bg-primary text-white hover:opacity-90 transition-all duration-200 hover:scale-[1.02]"
+              className="hidden sm:inline-flex items-center h-9 px-4 text-sm font-medium rounded-lg bg-primary text-black dark:text-white hover:opacity-90 transition-all duration-200 hover:scale-[1.02]"
             >
               Get Started
             </Link>
@@ -152,7 +152,7 @@ export function Navbar() {
                 <Link
                   to="/register"
                   onClick={() => setOpen(false)}
-                  className="w-full h-11 rounded-lg bg-primary text-white text-sm font-medium mt-2 text-center leading-[44px] hover:opacity-90 transition-opacity"
+                  className="w-full h-11 rounded-lg bg-primary text-black dark:text-white text-sm font-medium mt-2 text-center leading-[44px] hover:opacity-90 transition-opacity"
                 >
                   Get Started
                 </Link>

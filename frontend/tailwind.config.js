@@ -3,7 +3,7 @@ export default {
   darkMode: 'class',
   theme: {
     fontFamily: {
-      sans: ["'Stardom Regular'", "'Geist'", "-apple-system", "BlinkMacSystemFont", "'Segoe UI'", "Roboto", "sans-serif"],
+      sans: ["'Barlow'", "-apple-system", "BlinkMacSystemFont", "'Segoe UI'", "Roboto", "sans-serif"],
       display: ["'Instrument Serif'", "ui-serif", "Georgia", "serif"],
     },
     colors: {
