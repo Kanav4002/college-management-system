@@ -116,6 +116,7 @@ export default function AppShell({ title, children }) {
     navItems.push(
       { to: "/announcements", label: "Announcements", icon: "campaign" },
       { to: "/chat", label: "Chat", icon: "chat" },
+      { to: "/attendance", label: "Attendance", icon: "fact_check" },
       { to: "/student", label: "Student Panel", icon: "school" },
       { to: "/studentLeave", label: "Leaves", icon: "calendar_today" },
       { to: "/submit-complaint", label: "Raise Complaint", icon: "add_circle" }
@@ -126,6 +127,7 @@ export default function AppShell({ title, children }) {
     navItems.push(
       { to: "/announcements", label: "Announcements", icon: "campaign" },
       { to: "/chat", label: "Chat", icon: "chat" },
+      { to: "/attendance", label: "Attendance", icon: "fact_check" },
       { to: "/mentor", label: "Mentor Panel", icon: "groups" },
       { to: "/employeeLeave", label: "Leaves", icon: "calendar_today" },
       { to: "/submit-complaint", label: "Raise Complaint", icon: "add_circle" }
@@ -136,6 +138,7 @@ export default function AppShell({ title, children }) {
     navItems.push(
       { to: "/announcements", label: "Announcements", icon: "campaign" },
       { to: "/chat", label: "Chat", icon: "chat" },
+      { to: "/attendance", label: "Attendance", icon: "fact_check" },
       { to: "/admin", label: "Admin Panel", icon: "admin_panel_settings" },
       { to: "/manage-announcements", label: "Manage Announcements", icon: "edit_calendar" },
       { to: "/groups", label: "Groups", icon: "group" },

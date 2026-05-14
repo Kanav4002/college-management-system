@@ -7,4 +7,8 @@ module.exports = {
   Complaint:           require('./complaint.model'),
   ComplaintComment:    require('./complaintComment.model'),
   Leave:               require('./leave.model'),
+  Subject:             require('./subject.model'),
+  ClassSection:        require('./classSection.model'),
+  AttendanceSession:   require('./attendanceSession.model'),
+  AttendanceRecord:    require('./attendanceRecord.model'),
 };

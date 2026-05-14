@@ -13,6 +13,7 @@ import GroupManagement from "./pages/GroupManagement";
 import Announcements from "./pages/Announcements";
 import ManageAnnouncements from "./pages/ManageAnnouncements";
 import Chat from "./pages/Chat/Chat";
+import Attendance from "./pages/Attendance";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // ✅ FIXED: Capitalized component names (REQUIRED)
@@ -84,6 +85,14 @@ function App() {
         element={
           <ProtectedRoute allowedRoles={["STUDENT", "MENTOR", "ADMIN"]}>
             <Announcements />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/attendance"
+        element={
+          <ProtectedRoute allowedRoles={["STUDENT", "MENTOR", "ADMIN"]}>
+            <Attendance />
           </ProtectedRoute>
         }
       />

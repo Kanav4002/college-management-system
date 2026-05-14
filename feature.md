@@ -1,158 +1,108 @@
-````md
-# UniSphere Chat Messaging System Prompt
+# UniSphere Attendance Management System Prompt
 
 ## Overview
-Build a modern real-time chat messaging system for the UniSphere university management platform using the MERN stack (MongoDB, Express.js, React.js, Node.js) with Socket.IO for live communication.
+Build a smart Attendance Management System for the UniSphere university platform using the MERN stack (MongoDB, Express.js, React.js, Node.js). The system should allow mentors to manage attendance efficiently while enabling students to track their attendance records in real time.
 
 ---
 
-# Features Required
+# Core Features
 
-## 1. Real-Time Messaging
-- Instant sending and receiving of messages using Socket.IO
-- Typing indicators ("User is typing...")
-- Online/offline user status
-- Message timestamps
-- Auto-scroll to latest message
+## 1. Student Attendance Dashboard
+Students should be able to:
 
----
-
-## 2. User Roles
-### Students
-- Can chat with mentors
-
-### Mentors
-- Can chat with students and admins
-
-### Admins
-- Can communicate with everyone
-
-- Implement role-based chat permissions
+- View overall attendance percentage
+- View subject-wise attendance
+- Check present/absent history
+- Access attendance reports by date/month
+- Get low attendance warnings
+- Download attendance summary
+- View attendance trends using charts/graphs
 
 ---
 
-## 3. Chat Features
-- One-to-one private chats
-- Group chats for departments/classes
-- Send text messages
-- Emoji support
-- File attachment support
-- Message read/unread status
-- Delete message option
-- Edit sent messages
-- Search messages and users
+## 2. Mentor Attendance Management
+Mentors should be able to:
+
+- Create attendance sessions
+- Mark attendance for students
+- Edit/update attendance records
+- View class attendance statistics
+- Filter attendance by course, section, or subject
+- Search students quickly
+- Generate attendance reports
+- Export attendance data as PDF or Excel
 
 ---
 
-## 4. UI/UX Design
-- Responsive modern UI using React and Tailwind CSS
-- Sidebar with recent conversations
-- Chat bubbles with different alignment for sender/receiver
-- Dark/light theme support
-- Notification badge for unread messages
-- Clean dashboard integration with UniSphere theme
+# Attendance Features
+
+## Student Side
+- Real-time attendance updates
+- Attendance percentage calculator
+- Notifications for low attendance
+- Monthly attendance analytics
+- Attendance calendar view
+
+## Mentor Side
+- One-click mark all present
+- Bulk attendance update
+- Auto-save attendance
+- Attendance correction requests
+- Attendance locking after submission
 
 ---
 
-## 5. Backend Features
-- JWT authentication for secure access
-- MongoDB schemas for users, chats, and messages
-- REST APIs for fetching chats/messages
-- Socket event handling for real-time updates
-- Store chat history in database
-- Proper error handling and validation
+# Role-Based Access
+
+## Students
+- Can only view their own attendance
+
+## Mentors
+- Can manage attendance for assigned classes/subjects
+
+## Admins
+- Full access to all attendance records and analytics
 
 ---
 
-## 6. Additional Features
-- Push notifications
-- Voice message support
-- Image preview before sending
-- User profile popup inside chat
-- Pinned messages
-- Chat filtering by role or course
+# UI/UX Requirements
+
+- Modern responsive dashboard
+- Clean attendance tables
+- Color indicators:
+  - Green → Present
+  - Red → Absent
+  - Yellow → Leave/Pending
+- Progress bars for attendance percentage
+- Charts and graphs for analytics
+- Mobile-friendly interface
+- Dark/light mode support
 
 ---
 
-# Suggested Folder Structure
+# Backend Features
 
-## Frontend
-```bash
-src/
-│
-├── components/
-│   └── chat/
-│
-├── pages/
-│   └── Chat/
-│
-├── context/
-│   └── socketContext.js
-│
-├── services/
-│   └── chatService.js
-````
-
-## Backend
-
-```bash
-backend/
-│
-├── routes/
-│   └── chatRoutes.js
-│
-├── controllers/
-│   └── chatController.js
-│
-├── models/
-│   ├── Chat.js
-│   └── Message.js
-│
-├── socket/
-│   └── socketServer.js
-```
+- JWT Authentication
+- Role-Based Access Control (RBAC)
+- REST APIs for attendance operations
+- MongoDB schemas for:
+  - Users
+  - Subjects
+  - Attendance Records
+  - Classes/Sections
+- Secure validation and error handling
 
 ---
 
-# Recommended Tech Stack
+# Suggested Database Models
 
-## Frontend
-
-* React.js
-* Tailwind CSS
-* Axios
-* Socket.IO Client
-
-## Backend
-
-* Node.js
-* Express.js
-* Socket.IO
-* JWT Authentication
-
-## Database
-
-* MongoDB Atlas
-
----
-
-# Expected Output
-
-Generate:
-
-* Frontend UI components
-* Backend APIs
-* Socket.IO integration
-* MongoDB models
-* Authentication middleware
-* Responsive chat interface
-* Clean and scalable code architecture
-
----
-
-# Goal
-
-Create a scalable, secure, and modern university communication system that allows seamless interaction between students, mentors, and admins inside the UniSphere platform.
-
-```
-```
+## Attendance Model
+```js
+{
+  studentId,
+  mentorId,
+  subjectId,
+  date,
+  status,
+  remarks
+}
